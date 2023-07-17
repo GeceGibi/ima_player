@@ -53,21 +53,25 @@ internal class ImaPlayerView(
     }
 
     override fun dispose() {
-        playerView.removeAllViews()
-        adsLoader.setPlayer(null)
-        playerView.player = null
         player.release()
+
+        playerView.removeAllViews()
+        playerView.player = null
+
+        adsLoader.setPlayer(null)
+        adsLoader.release()
 
         methodChannel = null
         playerEventChannel = null
         playerEventSink = null
-
+        adsEventChannel = null
+        adsEventSink = null
     }
 
     init {
 
         val videoUrl = (creationParams?.get("video_url") ?: "") as String
-        vastUrl = (creationParams?.get("vast_url") ?: "") as String
+        vastUrl = (creationParams?.get("ima_tag") ?: "") as String
 
         methodChannel = MethodChannel(messenger, "dev.gece.imaplayer/$id")
         methodChannel?.setMethodCallHandler { call, result ->

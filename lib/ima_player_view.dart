@@ -1,16 +1,8 @@
 part of 'ima_player.dart';
 
-class ImaPlayerView extends StatelessWidget {
-  const ImaPlayerView({
-    required this.videoURL,
-    this.vastURL,
-    this.onViewCreated,
-    super.key,
-  });
-
-  final String videoURL;
-  final String? vastURL;
-  final void Function(ImaPlayerController controller)? onViewCreated;
+class _ImaPlayerView extends StatelessWidget {
+  const _ImaPlayerView({required this.controller});
+  final ImaPlayerController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -32,20 +24,19 @@ class ImaPlayerView extends StatelessWidget {
           viewType: viewType,
           layoutDirection: TextDirection.ltr,
           creationParams: {
-            'auto_play': true,
-            'video_url': videoURL,
-            'vast_url': vastURL,
-            'controller_auto_show': true,
-            'controller_hide_on_touch': true,
+            'auto_play': controller.options.autoPlay,
+            'video_url': controller.videoUrl,
+            'ima_tag': controller.imaTag,
+            'controller_auto_show': controller.options.controllerAutoShow,
+            'controller_hide_on_touch':
+                controller.options.controllerHideOnTouch,
           },
           creationParamsCodec: const StandardMessageCodec(),
-          onFocus: () {
-            params.onFocusChanged(true);
-          },
+          onFocus: () => params.onFocusChanged(true),
         )
           ..addOnPlatformViewCreatedListener((id) {
             params.onPlatformViewCreated(id);
-            onViewCreated?.call(ImaPlayerController._(params.id));
+            controller._attach(id);
           })
           ..create();
       },
