@@ -128,9 +128,9 @@ internal class ImaPlayerView(
         playerView.setShowVrButton(false)
 
         playerView.controllerAutoShow =
-            (creationParams?.get("controller_auto_show") ?: true) as Boolean
+            (creationParams?.get("controller_auto_show") as Boolean? ?: true)
         playerView.controllerHideOnTouch =
-            (creationParams?.get("controller_hide_on_touch") ?: true) as Boolean
+            (creationParams?.get("controller_hide_on_touch") as Boolean? ?: true)
 
 
         // Set up the factory for media sources, passing the ads loader and ad view providers.
@@ -142,10 +142,10 @@ internal class ImaPlayerView(
 
         // Create an ExoPlayer and set it as the player for content and ads.
         player = ExoPlayer.Builder(context).setMediaSourceFactory(mediaSourceFactory).build()
-        player.playWhenReady = (creationParams?.get("auto_play") ?: false) as Boolean
+        player.playWhenReady = (creationParams?.get("auto_play") as Boolean? ?: false)
         player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
 
-        if ((creationParams?.get("mute") ?: false) as Boolean) {
+        if ((creationParams?.get("mute") as Boolean? == true)) {
             player.volume = 0.0F
         }
 
@@ -158,7 +158,7 @@ internal class ImaPlayerView(
 
         player.setAudioAttributes(
             AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
-            (creationParams?.get("is_mix") ?: true) as Boolean
+            !(creationParams?.get("is_mix") as Boolean? ?: true)
         )
         playerView.artworkDisplayMode = PlayerView.ARTWORK_DISPLAY_MODE_FIT
 
