@@ -6,7 +6,6 @@ class _ImaPlayerView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // This is used in the platform side to register the view.
     const viewType = 'dev.gece.imaplayer.view';
 
     return PlatformViewLink(
@@ -24,6 +23,8 @@ class _ImaPlayerView extends StatelessWidget {
           viewType: viewType,
           layoutDirection: TextDirection.ltr,
           creationParams: {
+            'mute': controller.options.mute,
+            'is_mix': controller.options.isMixWithOtherMedia,
             'auto_play': controller.options.autoPlay,
             'video_url': controller.videoUrl,
             'ima_tag': controller.imaTag,

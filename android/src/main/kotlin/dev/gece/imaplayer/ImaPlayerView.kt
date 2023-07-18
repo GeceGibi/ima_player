@@ -11,7 +11,6 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.ima.ImaAdsLoader
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -32,7 +31,6 @@ internal class ImaPlayerView(
 ) : PlatformView {
 
     private var tag = "IMA_PLAYER/$id"
-    private val httpDataSourceFactory = DefaultHttpDataSource.Factory()
 
     private var methodChannel: MethodChannel? = null
     private var playerEventChannel: EventChannel? = null
@@ -80,6 +78,7 @@ internal class ImaPlayerView(
                 "pause" -> pause(result)
                 "stop" -> stop(result)
                 "seek_to" -> seekTo(call.argument<Long>("duration"), result)
+                "set_volume" -> setVolume(call.argument<Double>("volume"), result)
                 "get_size" -> getSize(result)
                 "get_info" -> getInfo(result)
                 else -> result.notImplemented()
@@ -144,20 +143,24 @@ internal class ImaPlayerView(
         // Create an ExoPlayer and set it as the player for content and ads.
         player = ExoPlayer.Builder(context).setMediaSourceFactory(mediaSourceFactory).build()
         player.playWhenReady = (creationParams?.get("auto_play") ?: false) as Boolean
+        player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+
+        if ((creationParams?.get("mute") ?: false) as Boolean) {
+            player.volume = 0.0F
+        }
+
         player.addListener(object : Player.Listener {
             override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
                 playerEventSink?.success(playbackState)
             }
-
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                super.onIsPlayingChanged(isPlaying)
-            }
         })
+
 
         player.setAudioAttributes(
             AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
-            true
+            (creationParams?.get("is_mix") ?: true) as Boolean
         )
+        playerView.artworkDisplayMode = PlayerView.ARTWORK_DISPLAY_MODE_FIT
 
         playerView.player = player
         adsLoader.setPlayer(player)
@@ -203,23 +206,29 @@ internal class ImaPlayerView(
         result.success(duration != null)
     }
 
-    private fun setVolume(value: Double) {
-        player.volume = 0.0.coerceAtLeast(1.0.coerceAtMost(value)).toFloat()
+    private fun setVolume(value: Double?, result: MethodChannel.Result) {
+        if (value != null) {
+            player.volume = 0.0.coerceAtLeast(1.0.coerceAtMost(value)).toFloat()
+        }
+
+        result.success(value != null)
     }
 
     private fun getSize(result: MethodChannel.Result) {
         var size = HashMap<String, Int>()
-        size["height"] = player.videoFormat?.height ?: 0
-        size["width"] = player.videoFormat?.width ?: 0
+        size["height"] = player.videoSize.height
+        size["width"] = player.videoSize.width
         result.success(size)
     }
 
     private fun getInfo(result: MethodChannel.Result) {
         var info = HashMap<String, Any>()
-        info["aspect_ratio"] = player.videoFormat?.pixelWidthHeightRatio ?: 1.0
-        info["average_bitrate"] = player.videoFormat?.averageBitrate ?: 0
+        info["current_position"] = player.currentPosition
+        info["total_duration"] = player.totalBufferedDuration
+        info["is_playing"] = player.isPlaying
+        info["is_playing_ad"] = player.isPlayingAd
+        info["is_loading"] = player.isLoading
+        info["is_device_muted"] = player.isDeviceMuted
         result.success(info)
     }
-
-
 }

@@ -6,20 +6,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
+part 'ima_player_models.dart';
 part 'ima_player_view.dart';
 part 'ima_player_events.dart';
 part 'ima_player_controller.dart';
 
 class ImaPlayerOptions {
   const ImaPlayerOptions({
+    this.mute = false,
     this.autoPlay = true,
     this.controllerAutoShow = true,
     this.controllerHideOnTouch = true,
+    this.isMixWithOtherMedia = true,
   });
 
+  final bool mute;
   final bool autoPlay;
   final bool controllerAutoShow;
   final bool controllerHideOnTouch;
+  final bool isMixWithOtherMedia;
 }
 
 class ImaPlayer extends StatelessWidget {

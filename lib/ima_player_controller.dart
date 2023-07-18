@@ -29,11 +29,15 @@ class ImaPlayerController {
     _eventChannelAds = EventChannel('dev.gece.imaplayer_ads_events/$viewId');
 
     _eventChannelPlayer!.receiveBroadcastStream().listen((event) {
-      _onPlayerEventController.add(ImaPlayerEvents.values[event]);
+      final status = ImaPlayerEvents.values[event];
+
+      _onPlayerEventController.add(status);
     });
 
     _eventChannelAds!.receiveBroadcastStream().listen((event) {
-      _onAdsEventController.add(ImaAdsEvents.values[event]);
+      final status = ImaAdsEvents.values[event];
+
+      _onAdsEventController.add(status);
     });
   }
 
@@ -58,6 +62,11 @@ class ImaPlayerController {
         false;
   }
 
+  Future<bool> setVolume(double volume) async {
+    return (await _methodChannel?.invokeMethod<bool>('set_volume', volume)) ??
+        false;
+  }
+
   Future<Size> getSize() async {
     final video = await _methodChannel?.invokeMapMethod<String, int>(
       'get_size',
@@ -69,10 +78,11 @@ class ImaPlayerController {
     return Size(width, height);
   }
 
-  Future<Map> getInfo() async {
-    return (await _methodChannel
-            ?.invokeMapMethod<String, dynamic>('get_info')) ??
-        {};
+  Future<ImaPlayerInfo> getInfo() async {
+    return ImaPlayerInfo.fromJson(
+      (await _methodChannel?.invokeMapMethod<String, dynamic>('get_info')) ??
+          {},
+    );
   }
 
   void dispose() {
