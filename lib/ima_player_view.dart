@@ -6,41 +6,46 @@ class _ImaPlayerView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const viewType = 'dev.gece.imaplayer.view';
+    const viewType = 'gece.dev/imaplayer';
 
-    return PlatformViewLink(
-      viewType: viewType,
-      surfaceFactory: (context, controller) {
-        return AndroidViewSurface(
-          controller: controller as AndroidViewController,
-          gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
-          hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-        );
-      },
-      onCreatePlatformView: (params) {
-        return PlatformViewsService.initExpensiveAndroidView(
-          id: params.id,
-          viewType: viewType,
-          layoutDirection: TextDirection.ltr,
-          creationParams: {
-            'mute': controller.options.mute,
-            'is_mix': controller.options.isMixWithOtherMedia,
-            'auto_play': controller.options.autoPlay,
-            'video_url': controller.videoUrl,
-            'ima_tag': controller.imaTag,
-            'controller_auto_show': controller.options.controllerAutoShow,
-            'controller_hide_on_touch':
-                controller.options.controllerHideOnTouch,
-          },
-          creationParamsCodec: const StandardMessageCodec(),
-          onFocus: () => params.onFocusChanged(true),
-        )
-          ..addOnPlatformViewCreatedListener((id) {
-            params.onPlatformViewCreated(id);
-            controller._attach(id);
-          })
-          ..create();
-      },
-    );
+    final creationParams = {
+      'ima_tag': controller.imaTag,
+      'is_muted': controller.options.muted,
+      'is_mixed': controller.options.isMixWithOtherMedia,
+      'auto_play': controller.options.autoPlay,
+      'video_url': controller.videoUrl,
+      'controller_auto_show': controller.options.controllerAutoShow,
+      'controller_hide_on_touch': controller.options.controllerHideOnTouch,
+    };
+
+    final gestureRecognizers = <Factory<OneSequenceGestureRecognizer>>{
+      Factory<OneSequenceGestureRecognizer>(
+        () => EagerGestureRecognizer(),
+      ),
+    };
+
+    if (Platform.isAndroid) {
+      return AndroidView(
+        viewType: viewType,
+        gestureRecognizers: gestureRecognizers,
+        creationParams: creationParams,
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: (id) {
+          controller._attach(id);
+          controller._onViewCreated();
+        },
+      );
+    } else {
+      return UiKitView(
+        viewType: viewType,
+        creationParams: creationParams,
+        gestureRecognizers: gestureRecognizers,
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: (id) {
+          controller._attach(id);
+          controller._onViewCreated();
+        },
+      );
+    }
   }
 }

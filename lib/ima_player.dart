@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -13,14 +14,17 @@ part 'ima_player_controller.dart';
 
 class ImaPlayerOptions {
   const ImaPlayerOptions({
-    this.mute = false,
+    this.muted = false,
     this.autoPlay = true,
-    this.controllerAutoShow = true,
-    this.controllerHideOnTouch = true,
     this.isMixWithOtherMedia = true,
+
+    // Just android
+    this.controllerAutoShow = true,
+    // Just android
+    this.controllerHideOnTouch = true,
   });
 
-  final bool mute;
+  final bool muted;
   final bool autoPlay;
   final bool controllerAutoShow;
   final bool controllerHideOnTouch;

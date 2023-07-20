@@ -2,6 +2,8 @@
 
 part of 'ima_player.dart';
 
+typedef ViewCreatedCallback = void Function();
+
 class ImaPlayerController {
   ImaPlayerController({
     required this.videoUrl,
@@ -24,9 +26,9 @@ class ImaPlayerController {
   late final onAdsEvent = _onAdsEventController.stream;
 
   void _attach(int viewId) {
-    _methodChannel = MethodChannel('dev.gece.imaplayer/$viewId');
-    _eventChannelPlayer = EventChannel('dev.gece.imaplayer_events/$viewId');
-    _eventChannelAds = EventChannel('dev.gece.imaplayer_ads_events/$viewId');
+    _methodChannel = MethodChannel('gece.dev/imaplayer/$viewId');
+    _eventChannelPlayer = EventChannel('gece.dev/imaplayer/$viewId/events');
+    _eventChannelAds = EventChannel('gece.dev/imaplayer/$viewId/events_ads');
 
     _eventChannelPlayer!.receiveBroadcastStream().listen((event) {
       final status = ImaPlayerEvents.values[event];
@@ -39,6 +41,10 @@ class ImaPlayerController {
 
       _onAdsEventController.add(status);
     });
+  }
+
+  void _onViewCreated() {
+    _methodChannel?.invokeMethod('view_created');
   }
 
   Future<bool> play({String? videoUrl}) async {

@@ -14,7 +14,7 @@ class ImaPlayerViewFactory(private val messenger: BinaryMessenger) :
     @RequiresApi(Build.VERSION_CODES.N)
     override fun create(context: Context, id: Int, args: Any?): PlatformView {
         return ImaPlayerView(
-            context, id, args as Map<String?, Any?>?, messenger
+            context, id, args as Map<String, Any>, messenger
         )
     }
 }

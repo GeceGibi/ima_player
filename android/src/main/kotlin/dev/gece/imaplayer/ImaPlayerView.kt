@@ -26,7 +26,7 @@ import io.flutter.plugin.platform.PlatformView
 internal class ImaPlayerView(
     context: Context,
     id: Int,
-    creationParams: Map<String?, Any?>?,
+    args: Map<String, Any>,
     messenger: BinaryMessenger,
 ) : PlatformView {
 
@@ -68,15 +68,16 @@ internal class ImaPlayerView(
 
     init {
 
-        val videoUrl = (creationParams?.get("video_url") ?: "") as String
-        vastUrl = (creationParams?.get("ima_tag") ?: "") as String
+        val videoUrl = args["video_url"] as String? ?: ""
+        vastUrl = args["ima_tag"] as String? ?: ""
 
-        methodChannel = MethodChannel(messenger, "dev.gece.imaplayer/$id")
+        methodChannel = MethodChannel(messenger, "gece.dev/imaplayer/$id")
         methodChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "play" -> play(call.argument("video_url"), result)
                 "pause" -> pause(result)
                 "stop" -> stop(result)
+                "view_created" -> viewCreated()
                 "seek_to" -> seekTo(call.argument<Long>("duration"), result)
                 "set_volume" -> setVolume(call.argument<Double>("volume"), result)
                 "get_size" -> getSize(result)
@@ -85,7 +86,7 @@ internal class ImaPlayerView(
             }
         }
 
-        playerEventChannel = EventChannel(messenger, "dev.gece.imaplayer_events/$id")
+        playerEventChannel = EventChannel(messenger, "gece.dev/imaplayer/$id/events")
         playerEventChannel?.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(o: Any?, sink: EventSink) {
                 playerEventSink = sink
@@ -96,7 +97,7 @@ internal class ImaPlayerView(
             }
         })
 
-        adsEventChannel = EventChannel(messenger, "dev.gece.imaplayer_ads_events/$id")
+        adsEventChannel = EventChannel(messenger, "gece.dev/imaplayer/$id/events_ads")
         adsEventChannel?.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(o: Any?, sink: EventSink) {
                 adsEventSink = sink
@@ -127,11 +128,8 @@ internal class ImaPlayerView(
         playerView.setShowSubtitleButton(false)
         playerView.setShowVrButton(false)
 
-        playerView.controllerAutoShow =
-            (creationParams?.get("controller_auto_show") as Boolean? ?: true)
-        playerView.controllerHideOnTouch =
-            (creationParams?.get("controller_hide_on_touch") as Boolean? ?: true)
-
+        playerView.controllerAutoShow = args["controller_auto_show"] as Boolean? ?: true
+        playerView.controllerHideOnTouch = args["controller_hide_on_touch"] as Boolean? ?: true
 
         // Set up the factory for media sources, passing the ads loader and ad view providers.
         val dataSourceFactory = DefaultDataSource.Factory(context)
@@ -142,24 +140,27 @@ internal class ImaPlayerView(
 
         // Create an ExoPlayer and set it as the player for content and ads.
         player = ExoPlayer.Builder(context).setMediaSourceFactory(mediaSourceFactory).build()
-        player.playWhenReady = (creationParams?.get("auto_play") as Boolean? ?: false)
+        player.playWhenReady = args["auto_play"] as Boolean? ?: false
         player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
 
-        if ((creationParams?.get("mute") as Boolean? == true)) {
+        if (args["is_muted"] as Boolean? == true) {
             player.volume = 0.0F
         }
 
         player.addListener(object : Player.Listener {
-            override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                super.onPlaybackStateChanged(playbackState)
                 playerEventSink?.success(playbackState)
             }
         })
 
 
+
         player.setAudioAttributes(
             AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
-            !(creationParams?.get("is_mix") as Boolean? ?: true)
+            !(args["is_mixed"] as Boolean? ?: true)
         )
+
         playerView.artworkDisplayMode = PlayerView.ARTWORK_DISPLAY_MODE_FIT
 
         playerView.player = player
@@ -179,7 +180,6 @@ internal class ImaPlayerView(
     }
 
     private fun play(videoUrl: String?, result: MethodChannel.Result) {
-
         if (videoUrl != null) {
             adsLoader.skipAd();
             preparePlayer(videoUrl)
@@ -215,14 +215,16 @@ internal class ImaPlayerView(
     }
 
     private fun getSize(result: MethodChannel.Result) {
-        var size = HashMap<String, Int>()
+        val size = HashMap<String, Int>()
         size["height"] = player.videoSize.height
         size["width"] = player.videoSize.width
         result.success(size)
     }
 
+    private fun viewCreated(){}
+
     private fun getInfo(result: MethodChannel.Result) {
-        var info = HashMap<String, Any>()
+        val info = HashMap<String, Any>()
         info["current_position"] = player.currentPosition
         info["total_duration"] = player.totalBufferedDuration
         info["is_playing"] = player.isPlaying

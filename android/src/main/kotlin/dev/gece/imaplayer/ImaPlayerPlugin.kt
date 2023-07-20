@@ -7,7 +7,7 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 class ImaPlayerPlugin : FlutterPlugin {
     override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         binding.platformViewRegistry.registerViewFactory(
-            "dev.gece.imaplayer.view", ImaPlayerViewFactory(binding.binaryMessenger)
+            "gece.dev/imaplayer", ImaPlayerViewFactory(binding.binaryMessenger)
         )
     }
 
