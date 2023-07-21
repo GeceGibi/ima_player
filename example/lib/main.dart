@@ -50,7 +50,7 @@ class _AppHomeState extends State<AppHome> {
     videoUrl:
         'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
     imaTag:
-        'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/vmap_ad_samples&sz=640x480&cust_params=sample_ar%3Dpremidpostoptimizedpodbumper&ciu_szs=300x250&gdfp_req=1&ad_rule=1&output=vmap&unviewed_position_start=1&env=vp&impl=s&cmsid=496&vid=short_onecue&correlator=',
+        'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
     options: const ImaPlayerOptions(
       muted: false,
       autoPlay: true,
@@ -79,7 +79,7 @@ class _AppHomeState extends State<AppHome> {
     });
 
     controller.onPlayerEvent.listen((event) async {
-      if (event == ImaPlayerEvents.IS_LOADING_CHANGED) {
+      if (event == ImaPlayerEvents.PLAYING) {
         updateAspectRatio();
       }
     });

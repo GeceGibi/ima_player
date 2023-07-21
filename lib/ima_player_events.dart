@@ -3,37 +3,19 @@
 part of 'ima_player.dart';
 
 enum ImaPlayerEvents {
-  TIMELINE_CHANGED,
-  MEDIA_ITEM_TRANSITION,
-  TRACKS_CHANGED,
-  IS_LOADING_CHANGED,
-  PLAYBACK_STATE_CHANGED,
-  PLAY_WHEN_READY_CHANGED,
-  PLAYBACK_SUPPRESSION_REASON_CHANGED,
-  IS_PLAYING_CHANGED,
-  REPEAT_MODE_CHANGED,
-  SHUFFLE_MODE_ENABLED_CHANGED,
-  PLAYER_ERROR,
-  POSITION_DISCONTINUITY,
-  PLAYBACK_PARAMETERS_CHANGED,
-  AVAILABLE_COMMANDS_CHANGED,
-  MEDIA_METADATA_CHANGED,
-  PLAYLIST_METADATA_CHANGED,
-  SEEK_BACK_INCREMENT_CHANGED,
-  SEEK_FORWARD_INCREMENT_CHANGED,
-  MAX_SEEK_TO_PREVIOUS_POSITION_CHANGED,
-  TRACK_SELECTION_PARAMETERS_CHANGED,
-  AUDIO_ATTRIBUTES_CHANGED,
-  AUDIO_SESSION_ID,
-  VOLUME_CHANGED,
-  SKIP_SILENCE_ENABLED_CHANGED,
-  SURFACE_SIZE_CHANGED,
-  VIDEO_SIZE_CHANGED,
-  RENDERED_FIRST_FRAME,
-  CUES,
-  METADATA,
-  DEVICE_INFO_CHANGED,
-  DEVICE_VOLUME_CHANGED
+  READY,
+  PLAYING,
+  PAUSED;
+
+  static ImaPlayerEvents? fromString(String? str) {
+    for (final value in values) {
+      if (value.name == str) {
+        return value;
+      }
+    }
+
+    return null;
+  }
 }
 
 enum ImaAdsEvents {
@@ -63,5 +45,21 @@ enum ImaAdsEvents {
   AD_BREAK_STARTED,
   AD_BREAK_ENDED,
   AD_PERIOD_STARTED,
-  AD_PERIOD_ENDED;
+  AD_PERIOD_ENDED,
+  UNKNOWN;
+
+  static ImaAdsEvents fromString(String? str) {
+    /// Added for ios sdk
+    if (str == "COMPLETE") {
+      return ImaAdsEvents.COMPLETED;
+    }
+
+    for (final value in values) {
+      if (value.name == str) {
+        return value;
+      }
+    }
+
+    return ImaAdsEvents.UNKNOWN;
+  }
 }

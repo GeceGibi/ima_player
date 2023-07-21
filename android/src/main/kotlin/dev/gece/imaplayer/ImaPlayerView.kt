@@ -33,10 +33,9 @@ internal class ImaPlayerView(
     private var tag = "IMA_PLAYER/$id"
 
     private var methodChannel: MethodChannel? = null
-    private var playerEventChannel: EventChannel? = null
-    private var playerEventSink: EventSink? = null
-    private var adsEventChannel: EventChannel? = null
-    private var adsEventSink: EventSink? = null
+    private var eventChannel: EventChannel? = null
+    private var eventSink: EventSink? = null
+
 
     // Video Player
     private val playerView: PlayerView
@@ -60,10 +59,8 @@ internal class ImaPlayerView(
         adsLoader.release()
 
         methodChannel = null
-        playerEventChannel = null
-        playerEventSink = null
-        adsEventChannel = null
-        adsEventSink = null
+        eventChannel = null
+        eventSink = null
     }
 
     init {
@@ -86,25 +83,14 @@ internal class ImaPlayerView(
             }
         }
 
-        playerEventChannel = EventChannel(messenger, "gece.dev/imaplayer/$id/events")
-        playerEventChannel?.setStreamHandler(object : EventChannel.StreamHandler {
+        eventChannel = EventChannel(messenger, "gece.dev/imaplayer/$id/events")
+        eventChannel?.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(o: Any?, sink: EventSink) {
-                playerEventSink = sink
+                eventSink = sink
             }
 
             override fun onCancel(o: Any?) {
-                playerEventSink = null
-            }
-        })
-
-        adsEventChannel = EventChannel(messenger, "gece.dev/imaplayer/$id/events_ads")
-        adsEventChannel?.setStreamHandler(object : EventChannel.StreamHandler {
-            override fun onListen(o: Any?, sink: EventSink) {
-                adsEventSink = sink
-            }
-
-            override fun onCancel(o: Any?) {
-                adsEventSink = null
+                eventSink = null
             }
         })
 
@@ -112,13 +98,13 @@ internal class ImaPlayerView(
 
         adsLoader = ImaAdsLoader.Builder(context)
             .setAdErrorListener { event ->
-                adsEventSink?.error(
+                eventSink?.error(
                     event.error.errorCode.name,
                     event.error.message,
                     event.error
                 )
             }
-            .setAdEventListener { event -> adsEventSink?.success(event.type.ordinal) }
+            .setAdEventListener { event -> sendEvent("ads", event.type.name) }
             .build()
 
         playerView = PlayerView(context)
@@ -150,11 +136,9 @@ internal class ImaPlayerView(
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 super.onPlaybackStateChanged(playbackState)
-                playerEventSink?.success(playbackState)
+                sendEvent("player", playbackState)
             }
         })
-
-
 
         player.setAudioAttributes(
             AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
@@ -162,10 +146,8 @@ internal class ImaPlayerView(
         )
 
         playerView.artworkDisplayMode = PlayerView.ARTWORK_DISPLAY_MODE_FIT
-
         playerView.player = player
         adsLoader.setPlayer(player)
-
         preparePlayer(videoUrl)
     }
 
@@ -221,7 +203,7 @@ internal class ImaPlayerView(
         result.success(size)
     }
 
-    private fun viewCreated(){}
+    private fun viewCreated() {}
 
     private fun getInfo(result: MethodChannel.Result) {
         val info = HashMap<String, Any>()
@@ -232,5 +214,14 @@ internal class ImaPlayerView(
         info["is_loading"] = player.isLoading
         info["is_device_muted"] = player.isDeviceMuted
         result.success(info)
+    }
+
+    private fun sendEvent(type: String, value: Any) {
+        eventSink?.success(
+            hashMapOf(
+                "type" to type,
+                "value" to value,
+            )
+        )
     }
 }

@@ -14,6 +14,7 @@ import MediaPlayer
 
 class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAdsLoaderDelegate, IMAAdsManagerDelegate {
     private var player: AVPlayer!
+    private var playerLayer: AVPlayerLayer?
     private var adsLoader = IMAAdsLoader(settings: nil)
     private var adsManager: IMAAdsManager!
     private var contentPlayhead: IMAAVPlayerContentPlayhead?
@@ -27,6 +28,8 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     private var eventChannelAds: FlutterEventChannel!
     private var eventSinkAds: FlutterEventSink!
     
+    private var autoPlay = false
+    
     private let imaTag: String
     private let videoUrl: String
     
@@ -35,7 +38,13 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     func dispose(){
+        print("dispose - working")
+        player.replaceCurrentItem(with: nil)
+        avPlayerViewController.player = nil
+        playerLayer?.removeFromSuperlayer()
         NotificationCenter.default.removeObserver(self)
+
+
     }
     
     init(
@@ -44,15 +53,16 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         arguments args: Dictionary<String, Any>?,
         binaryMessenger messenger: FlutterBinaryMessenger
     ) {
-        imaTag = ((args?["ima_tag"] as? String?) ?? "")!
-        videoUrl = ((args?["video_url"] as? String?) ?? "")!
+        imaTag = (args?["ima_tag"] ?? "") as! String
+        videoUrl = (args?["video_url"] ?? "") as! String
+        autoPlay = (args?["auto_play"] ?? false) as! Bool
         
         super.init()
+        methodChannel = FlutterMethodChannel(name: "gece.dev/imaplayer/\(viewId)", binaryMessenger: messenger)
+        methodChannel.setMethodCallHandler(onMethodCall)
         
-        
-        // 'is_mixed': controller.options.isMixWithOtherMedia,
-        // 'auto_play': controller.options.autoPlay,
-        // 'video_url': controller.videoUrl,
+        eventChannel = FlutterEventChannel(name: "gece.dev/imaplayer/\(viewId)/events", binaryMessenger: messenger)
+        eventChannel.setStreamHandler(self)
         
         adsLoader.delegate = self
         
@@ -60,10 +70,11 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         let contentURL = URL(string: videoUrl)!
         
         player = AVPlayer(url: contentURL)
-        player.isMuted = ((args?["is_muted"] as? Bool?) ?? false)!
+        
+        player.isMuted = (args?["is_muted"] ?? false) as! Bool
         
         let audioSession = AVAudioSession.sharedInstance()
-        let isMixed = ((args?["is_mixed"] as? Bool?) ?? true)!
+        let isMixed = (args?["is_mixed"] ?? true) as! Bool
         
         do {
             if (isMixed){
@@ -75,29 +86,31 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             
         }
         
-        
-        // avPlayerViewController.showsPlaybackControls
         avPlayerViewController.player = player
-        avPlayerViewController.showsPlaybackControls = false
+        
+        player.addObserver(self, forKeyPath: "status", options: [.old, .new], context: nil)
+        player.addObserver(self, forKeyPath: "rate", options: [.initial, .old, .new], context: nil)
+        
+        playerLayer = AVPlayerLayer.init(player: player)
+        avPlayerViewController.view.layer.addSublayer(playerLayer!)
+        avPlayerViewController.view.frame = frame
+        
         contentPlayhead = IMAAVPlayerContentPlayhead(avPlayer: player)
-        
-        
-        methodChannel = FlutterMethodChannel(name: "gece.dev/imaplayer/\(viewId)", binaryMessenger: messenger)
-        methodChannel.setMethodCallHandler(onMethodCall)
-        
-        eventChannel = FlutterEventChannel(name: "gece.dev/imaplayer/\(viewId)/events", binaryMessenger: messenger)
-        eventChannel.setStreamHandler(self)
-        
-        // eventChannelAds = FlutterEventChannel(name: "gece.dev/imaplayer/\(viewId)/events_ads", binaryMessenger: messenger)
-        
-        
         
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(ImaPlayerView.contentDidFinishPlaying(_:)),
-            name: NSNotification.Name.AVPlayerItemDidPlayToEndTime,
-            object: player.currentItem);
-        
+            selector: #selector(self.contentDidFinishPlaying),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: player.currentItem
+        );
+    }
+    
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+         if keyPath == "status" && player.status == .readyToPlay {
+            sendEvent(type: "player", value: "READY")
+        } else  if keyPath == "rate" {
+            sendEvent(type: "player", value: player.rate > 0 ? "PLAYING": "PAUSED")
+        }
     }
     
     @objc func contentDidFinishPlaying(_ notification: Notification) {
@@ -114,7 +127,6 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         return nil
     }
     
-    
     // MARK: - IMAAdsLoaderDelegate
     func adsLoader(_ loader: IMAAdsLoader, adsLoadedWith adsLoadedData: IMAAdsLoadedData) {
         adsManager = adsLoadedData.adsManager
@@ -129,7 +141,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     
     // MARK: - IMAAdsManagerDelegate
     func adsManager(_ adsManager: IMAAdsManager, didReceive event: IMAAdEvent) {
-        
+        sendEvent(type: "ads", value: event.typeString)
         
         // Play each ad once it has been loaded
         if event.type == IMAAdEventType.LOADED {
@@ -138,8 +150,17 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     func adsManager(_ adsManager: IMAAdsManager, didReceive error: IMAAdError) {}
-    func adsManagerDidRequestContentPause(_ adsManager: IMAAdsManager) {}
-    func adsManagerDidRequestContentResume(_ adsManager: IMAAdsManager) {}
+    func adsManagerDidRequestContentPause(_ adsManager: IMAAdsManager) {
+        if player.rate > 0 {
+            player.pause()
+        }
+    }
+    
+    func adsManagerDidRequestContentResume(_ adsManager: IMAAdsManager) {
+        if autoPlay && player.rate == 0{
+            player.play()
+        }
+    }
     
     func requestAds() {
         let adDisplayContainer = IMAAdDisplayContainer(adContainer: avPlayerViewController.view, viewController: avPlayerViewController)
@@ -147,13 +168,14 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             adTagUrl: imaTag,
             adDisplayContainer: adDisplayContainer,
             contentPlayhead: contentPlayhead,
-            userContext: nil)
+            userContext: nil
+        )
         
         adsLoader.requestAds(with: request)
     }
     
     func viewCreated(){
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.requestAds()
         }
     }
@@ -179,10 +201,26 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             viewCreated()
             break;
             
+        case "get_size":
+            sendSize(result: result)
+            break;
+            
         default:
             result(FlutterMethodNotImplemented)
         }
     }
     
+    private func getSize() -> Dictionary<String, Int> {
+        let size = avPlayerViewController.player?.currentItem?.tracks.first?.assetTrack?.naturalSize
+        return ["width": Int(size?.width ?? 0) , "height": Int(size?.height ?? 0)]
+    }
+    
+    private func sendSize(result: FlutterResult){
+         result(getSize())
+    }
+    
+    private func sendEvent(type: String, value: Any?) {
+        eventSink?([ "type": type, "value": value ])
+    }
     
 }

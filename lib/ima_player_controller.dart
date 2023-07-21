@@ -16,10 +16,9 @@ class ImaPlayerController {
   final ImaPlayerOptions options;
 
   MethodChannel? _methodChannel;
-  EventChannel? _eventChannelPlayer;
-  EventChannel? _eventChannelAds;
+  EventChannel? _eventChannel;
 
-  final _onPlayerEventController = StreamController<ImaPlayerEvents>();
+  final _onPlayerEventController = StreamController<ImaPlayerEvents?>();
   late final onPlayerEvent = _onPlayerEventController.stream;
 
   final _onAdsEventController = StreamController<ImaAdsEvents>();
@@ -27,19 +26,27 @@ class ImaPlayerController {
 
   void _attach(int viewId) {
     _methodChannel = MethodChannel('gece.dev/imaplayer/$viewId');
-    _eventChannelPlayer = EventChannel('gece.dev/imaplayer/$viewId/events');
-    _eventChannelAds = EventChannel('gece.dev/imaplayer/$viewId/events_ads');
+    _eventChannel = EventChannel('gece.dev/imaplayer/$viewId/events');
 
-    _eventChannelPlayer!.receiveBroadcastStream().listen((event) {
-      final status = ImaPlayerEvents.values[event];
+    _eventChannel!.receiveBroadcastStream().listen((event) {
+      if (event is Map && event.containsKey('type')) {
+        final value = event["value"];
 
-      _onPlayerEventController.add(status);
-    });
+        switch (event['type']) {
+          case 'ads':
+            final status = ImaAdsEvents.fromString(
+              (value as String?)?.toUpperCase().replaceAll(' ', '_'),
+            );
 
-    _eventChannelAds!.receiveBroadcastStream().listen((event) {
-      final status = ImaAdsEvents.values[event];
+            _onAdsEventController.add(status);
+            break;
 
-      _onAdsEventController.add(status);
+          case 'player':
+            final status = ImaPlayerEvents.fromString(value);
+            _onPlayerEventController.add(status);
+            break;
+        }
+      }
     });
   }
 
