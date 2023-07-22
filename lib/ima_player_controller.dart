@@ -71,8 +71,15 @@ class ImaPlayerController {
 
   Future<bool> seekTo(Duration duration) async {
     return (await _methodChannel?.invokeMethod<bool>(
-            'seek_to', duration.inMilliseconds)) ??
+            'seek_to',
+            Platform.isAndroid
+                ? duration.inMilliseconds
+                : duration.inMilliseconds / 1000)) ??
         false;
+  }
+
+  Future<bool> skipAd() async {
+    return (await _methodChannel?.invokeMethod<bool>('skip_ad')) ?? false;
   }
 
   Future<bool> setVolume(double volume) async {
@@ -87,7 +94,6 @@ class ImaPlayerController {
 
     final height = (video?['height'] ?? 0).toDouble();
     final width = (video?['width'] ?? 0).toDouble();
-
     return Size(width, height);
   }
 
@@ -99,7 +105,9 @@ class ImaPlayerController {
   }
 
   void dispose() {
-    _onAdsEventController.close();
-    _onPlayerEventController.close();
+    _methodChannel?.invokeMethod('dispose').then((value) {
+      _onAdsEventController.close();
+      _onPlayerEventController.close();
+    });
   }
 }

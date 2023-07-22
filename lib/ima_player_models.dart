@@ -6,17 +6,15 @@ class ImaPlayerInfo {
         totalDuration = json['total_duration'],
         isPlaying = json['is_playing'],
         isPlayingAd = json['is_playing_ad'],
-        isLoading = json['is_loading'],
-        isDeviceMuted = json['is_device_muted'];
+        isBuffering = json['is_buffering'];
 
   final int currentPosition;
   final int totalDuration;
   final bool isPlaying;
   final bool isPlayingAd;
-  final bool isLoading;
-  final bool isDeviceMuted;
+  final bool isBuffering;
 
   @override
   String toString() =>
-      'ImaPlayerInfo(currentPosition: $currentPosition, totalDuration: $totalDuration, isPlaying: $isPlaying, isPlayingAd: $isPlayingAd, isLoading: $isLoading, isDeviceMuted: $isDeviceMuted)';
+      'ImaPlayerInfo(currentPosition: $currentPosition, totalDuration: $totalDuration, isPlaying: $isPlaying, isPlayingAd: $isPlayingAd, isBuffering: $isBuffering)';
 }

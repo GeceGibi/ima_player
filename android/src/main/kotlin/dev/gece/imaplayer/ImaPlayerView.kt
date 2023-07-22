@@ -3,12 +3,13 @@ package dev.gece.imaplayer
 import android.content.Context
 import android.net.Uri
 import android.os.Build
-import android.util.Log
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -20,7 +21,6 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
-
 
 @RequiresApi(Build.VERSION_CODES.N)
 internal class ImaPlayerView(
@@ -36,10 +36,10 @@ internal class ImaPlayerView(
     private var eventChannel: EventChannel? = null
     private var eventSink: EventSink? = null
 
-
     // Video Player
     private val playerView: PlayerView
-    private var player: ExoPlayer
+    private var exoPlayer: ExoPlayer
+    private var player: Player
 
     // Ima
     private var vastUrl: String? = null
@@ -64,7 +64,6 @@ internal class ImaPlayerView(
     }
 
     init {
-
         val videoUrl = args["video_url"] as String? ?: ""
         vastUrl = args["ima_tag"] as String? ?: ""
 
@@ -75,10 +74,12 @@ internal class ImaPlayerView(
                 "pause" -> pause(result)
                 "stop" -> stop(result)
                 "view_created" -> viewCreated()
-                "seek_to" -> seekTo(call.argument<Long>("duration"), result)
-                "set_volume" -> setVolume(call.argument<Double>("volume"), result)
+                "seek_to" -> seekTo(call.arguments as Int?, result)
+                "set_volume" -> setVolume(call.arguments as Double?, result)
                 "get_size" -> getSize(result)
                 "get_info" -> getInfo(result)
+                "skip_ad" -> skipAd(result)
+                "dispose" -> viewDispose()
                 else -> result.notImplemented()
             }
         }
@@ -93,8 +94,6 @@ internal class ImaPlayerView(
                 eventSink = null
             }
         })
-
-        Log.w(tag, id.toString())
 
         adsLoader = ImaAdsLoader.Builder(context)
             .setAdErrorListener { event ->
@@ -116,18 +115,49 @@ internal class ImaPlayerView(
 
         playerView.controllerAutoShow = args["controller_auto_show"] as Boolean? ?: true
         playerView.controllerHideOnTouch = args["controller_hide_on_touch"] as Boolean? ?: true
+        playerView.useController = args["show_playback_controls"] as Boolean? ?: true
 
         // Set up the factory for media sources, passing the ads loader and ad view providers.
         val dataSourceFactory = DefaultDataSource.Factory(context)
-        val mediaSourceFactory =
-            DefaultMediaSourceFactory(dataSourceFactory).setAdsLoaderProvider { adsLoader }
-                .setAdViewProvider(playerView)
+        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+            .setAdsLoaderProvider { adsLoader }
+            .setAdViewProvider(playerView)
 
 
         // Create an ExoPlayer and set it as the player for content and ads.
-        player = ExoPlayer.Builder(context).setMediaSourceFactory(mediaSourceFactory).build()
+        exoPlayer = ExoPlayer.Builder(context).setMediaSourceFactory(mediaSourceFactory).build()
+        exoPlayer.setAudioAttributes(
+            AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
+            !(args["is_mixed"] as Boolean? ?: true)
+        )
+
+        player = object : ForwardingPlayer(exoPlayer) {
+            override fun isCommandAvailable(command: @Player.Command Int): Boolean {
+                return when (command) {
+                    COMMAND_SET_SPEED_AND_PITCH, COMMAND_GET_AUDIO_ATTRIBUTES -> false
+                    else -> super.isCommandAvailable(command)
+                }
+            }
+
+            override fun getAvailableCommands(): Player.Commands {
+                return super.getAvailableCommands()
+                    .buildUpon()
+                    .addAllCommands()
+                    .removeAll(COMMAND_SET_SPEED_AND_PITCH, COMMAND_GET_AUDIO_ATTRIBUTES)
+                    .build()
+            }
+
+            override fun setPlaybackParameters(playbackParameters: PlaybackParameters) {
+                // Setting speed and pitch is disabled
+            }
+
+            override fun setPlaybackSpeed(speed: Float) {
+                // Setting speed and pitch is disabled
+            }
+        }
+
         player.playWhenReady = args["auto_play"] as Boolean? ?: false
-        player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+
 
         if (args["is_muted"] as Boolean? == true) {
             player.volume = 0.0F
@@ -136,14 +166,22 @@ internal class ImaPlayerView(
         player.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 super.onPlaybackStateChanged(playbackState)
-                sendEvent("player", playbackState)
+                when (playbackState) {
+                    ExoPlayer.STATE_READY -> sendEvent("player", "READY")
+                    ExoPlayer.STATE_BUFFERING -> sendEvent("player", "BUFFERING")
+                }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                super.onIsPlayingChanged(isPlaying)
+                sendEvent(
+                    "player",
+                    if (isPlaying) "PLAYING" else "PAUSED"
+                )
             }
         })
 
-        player.setAudioAttributes(
-            AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
-            !(args["is_mixed"] as Boolean? ?: true)
-        )
+
 
         playerView.artworkDisplayMode = PlayerView.ARTWORK_DISPLAY_MODE_FIT
         playerView.player = player
@@ -157,13 +195,16 @@ internal class ImaPlayerView(
         val mediaItem = MediaItem.Builder().setUri(contentUri)
             .setAdsConfiguration(MediaItem.AdsConfiguration.Builder(adTagUri).build()).build()
 
+
         player.setMediaItem(mediaItem)
         player.prepare()
     }
 
     private fun play(videoUrl: String?, result: MethodChannel.Result) {
         if (videoUrl != null) {
-            adsLoader.skipAd();
+            player.stop()
+            player.clearMediaItems()
+            adsLoader.skipAd()
             preparePlayer(videoUrl)
         }
 
@@ -181,9 +222,9 @@ internal class ImaPlayerView(
         result.success(true)
     }
 
-    private fun seekTo(duration: Long?, result: MethodChannel.Result) {
+    private fun seekTo(duration: Int?, result: MethodChannel.Result) {
         if (duration != null) {
-            player.seekTo(duration)
+            player.seekTo(duration.toLong())
         }
         result.success(duration != null)
     }
@@ -196,24 +237,37 @@ internal class ImaPlayerView(
         result.success(value != null)
     }
 
+    private fun skipAd(result: MethodChannel.Result) {
+        if (player.isPlayingAd) {
+            adsLoader.skipAd()
+
+        }
+
+        result.success(player.isPlayingAd)
+    }
+
     private fun getSize(result: MethodChannel.Result) {
-        val size = HashMap<String, Int>()
-        size["height"] = player.videoSize.height
-        size["width"] = player.videoSize.width
-        result.success(size)
+        result.success(
+            hashMapOf(
+                "height" to player.videoSize.height,
+                "width" to player.videoSize.width
+            )
+        )
     }
 
     private fun viewCreated() {}
+    private fun viewDispose() {}
 
     private fun getInfo(result: MethodChannel.Result) {
-        val info = HashMap<String, Any>()
-        info["current_position"] = player.currentPosition
-        info["total_duration"] = player.totalBufferedDuration
-        info["is_playing"] = player.isPlaying
-        info["is_playing_ad"] = player.isPlayingAd
-        info["is_loading"] = player.isLoading
-        info["is_device_muted"] = player.isDeviceMuted
-        result.success(info)
+        result.success(
+            hashMapOf(
+                "current_position" to player.currentPosition,
+                "total_duration" to player.duration,
+                "is_playing" to (player.isPlaying && !player.isPlayingAd),
+                "is_playing_ad" to player.isPlayingAd,
+                "is_buffering" to (player.bufferedPercentage != 0 && player.bufferedPercentage != 100),
+            )
+        )
     }
 
     private fun sendEvent(type: String, value: Any) {

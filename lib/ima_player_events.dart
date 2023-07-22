@@ -4,6 +4,7 @@ part of 'ima_player.dart';
 
 enum ImaPlayerEvents {
   READY,
+  BUFFERING,
   PLAYING,
   PAUSED;
 

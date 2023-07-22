@@ -10,8 +10,6 @@ import Flutter
 import UIKit
 
 class ImaPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
-
-    
     private var messenger: FlutterBinaryMessenger
 
     init(messenger: FlutterBinaryMessenger) {

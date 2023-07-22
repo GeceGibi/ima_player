@@ -10,8 +10,6 @@ class ImaPlayerPlugin : FlutterPlugin {
             "gece.dev/imaplayer", ImaPlayerViewFactory(binding.binaryMessenger)
         )
     }
+    override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {}
 
-    override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-
-    }
 }

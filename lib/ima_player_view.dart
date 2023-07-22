@@ -16,6 +16,7 @@ class _ImaPlayerView extends StatelessWidget {
       'video_url': controller.videoUrl,
       'controller_auto_show': controller.options.controllerAutoShow,
       'controller_hide_on_touch': controller.options.controllerHideOnTouch,
+      'show_playback_controls': controller.options.showPlaybackControls,
     };
 
     final gestureRecognizers = <Factory<OneSequenceGestureRecognizer>>{
@@ -25,14 +26,30 @@ class _ImaPlayerView extends StatelessWidget {
     };
 
     if (Platform.isAndroid) {
-      return AndroidView(
+      return PlatformViewLink(
         viewType: viewType,
-        gestureRecognizers: gestureRecognizers,
-        creationParams: creationParams,
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: (id) {
-          controller._attach(id);
-          controller._onViewCreated();
+        onCreatePlatformView: (params) {
+          return PlatformViewsService.initAndroidView(
+            id: params.id,
+            viewType: viewType,
+            layoutDirection: TextDirection.ltr,
+            creationParams: creationParams,
+            creationParamsCodec: const StandardMessageCodec(),
+            onFocus: () => params.onFocusChanged(true),
+          )
+            ..addOnPlatformViewCreatedListener((id) {
+              params.onPlatformViewCreated(id);
+              controller._attach(id);
+              controller._onViewCreated();
+            })
+            ..create();
+        },
+        surfaceFactory: (context, controller) {
+          return AndroidViewSurface(
+            controller: controller as AndroidViewController,
+            gestureRecognizers: gestureRecognizers,
+            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+          );
         },
       );
     } else {

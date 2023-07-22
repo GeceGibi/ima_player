@@ -32,7 +32,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const AppHome(),
+      routes: {
+        "/": (context) => const AppHome(),
+        "/player": (context) => const PlayerScreen(),
+      },
     );
   }
 }
@@ -45,7 +48,32 @@ class AppHome extends StatefulWidget {
 }
 
 class _AppHomeState extends State<AppHome> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: FilledButton(
+          onPressed: () {
+            Navigator.of(context).pushNamed('/player');
+          },
+          child: Icon(Icons.play_arrow),
+        ),
+      ),
+    );
+  }
+}
+
+class PlayerScreen extends StatefulWidget {
+  const PlayerScreen({super.key});
+
+  @override
+  State<PlayerScreen> createState() => _PlayerScreenState();
+}
+
+class _PlayerScreenState extends State<PlayerScreen> {
   var aspectRatio = 16 / 9;
+  ImaPlayerInfo? info;
+
   final controller = ImaPlayerController(
     videoUrl:
         'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
@@ -54,18 +82,23 @@ class _AppHomeState extends State<AppHome> {
     options: const ImaPlayerOptions(
       muted: false,
       autoPlay: true,
-      controllerAutoShow: false,
-      controllerHideOnTouch: false,
       isMixWithOtherMedia: false,
     ),
   );
 
+  Future<void> getInfoHandler() async {
+    info = await controller.getInfo();
+    setState(() {});
+  }
+
   void updateAspectRatio() async {
     final size = await controller.getSize();
 
-    setState(() {
-      aspectRatio = size.width / size.height;
-    });
+    if (size.width != 0 && size.height != 0) {
+      // setState(() {
+      //   aspectRatio = size.width / size.height;
+      // });
+    }
   }
 
   @override
@@ -73,15 +106,16 @@ class _AppHomeState extends State<AppHome> {
     super.initState();
 
     controller.onAdsEvent.listen((event) async {
-      if (event == ImaAdsEvents.CONTENT_RESUME_REQUESTED) {
+      print('onAdsEvent > $event');
+
+      if (event == ImaAdsEvents.CONTENT_RESUME_REQUESTED ||
+          event == ImaAdsEvents.CONTENT_PAUSE_REQUESTED) {
         updateAspectRatio();
       }
     });
 
-    controller.onPlayerEvent.listen((event) async {
-      if (event == ImaPlayerEvents.PLAYING) {
-        updateAspectRatio();
-      }
+    controller.onPlayerEvent.listen((event) {
+      print('onPlayerEvent > $event');
     });
   }
 
@@ -94,6 +128,7 @@ class _AppHomeState extends State<AppHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(),
       body: ListView(
         children: [
           AspectRatio(
@@ -111,6 +146,35 @@ class _AppHomeState extends State<AppHome> {
           FilledButton(
             onPressed: controller.stop,
             child: Text('STOP'),
+          ),
+          FilledButton(
+            onPressed: () {
+              controller.play(
+                videoUrl:
+                    'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+              );
+            },
+            child: Text('PLAY ANOTHER VIDEO'),
+          ),
+          FilledButton(
+            onPressed: controller.skipAd,
+            child: Text('SKIP AD'),
+          ),
+          FilledButton(
+            onPressed: () => controller.setVolume(0.2),
+            child: Text('SET VOLUME (0.2)'),
+          ),
+          FilledButton(
+            onPressed: () => controller.seekTo(const Duration(seconds: 10)),
+            child: Text('SEEK TO (10 SEC)'),
+          ),
+          FilledButton(
+            onPressed: getInfoHandler,
+            child: Text('GET INFO'),
+          ),
+          Text(
+            info.toString(),
+            maxLines: 10,
           )
         ],
       ),
