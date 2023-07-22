@@ -18,7 +18,7 @@ class ImaPlayerOptions {
     this.autoPlay = true,
     this.isMixWithOtherMedia = true,
     this.allowBackgroundPlayback = false,
-    this.showPlaybackControls = false,
+    this.showPlaybackControls = true,
 
     /// Just android
     this.controllerAutoShow = true,

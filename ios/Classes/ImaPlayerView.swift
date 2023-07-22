@@ -130,6 +130,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             
         case "playbackLikelyToKeepUp":
             isBuffering = true
+            sendEvent(type: "player", value: "BUFFERING")
             break;
             
             
