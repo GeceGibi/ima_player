@@ -73,13 +73,13 @@ internal class ImaPlayerView(
                 "play" -> play(call.argument("video_url"), result)
                 "pause" -> pause(result)
                 "stop" -> stop(result)
-                "view_created" -> viewCreated()
+                "view_created" -> viewCreated(result)
                 "seek_to" -> seekTo(call.arguments as Int?, result)
                 "set_volume" -> setVolume(call.arguments as Double?, result)
                 "get_size" -> getSize(result)
                 "get_info" -> getInfo(result)
                 "skip_ad" -> skipAd(result)
-                "dispose" -> viewDispose()
+                "dispose" -> viewDispose(result)
                 else -> result.notImplemented()
             }
         }
@@ -255,8 +255,12 @@ internal class ImaPlayerView(
         )
     }
 
-    private fun viewCreated() {}
-    private fun viewDispose() {}
+    private fun viewCreated(result: MethodChannel.Result) {
+        result.success(true)
+    }
+    private fun viewDispose(result: MethodChannel.Result) {
+        result.success(true)
+    }
 
     private fun getInfo(result: MethodChannel.Result) {
         result.success(

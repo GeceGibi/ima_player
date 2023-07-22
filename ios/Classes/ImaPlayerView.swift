@@ -208,10 +208,12 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         adsLoader.requestAds(with: request)
     }
     
-    func viewCreated(){
+    func viewCreated(result: FlutterResult){
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.requestAds()
         }
+        
+        result(true)
     }
     
     func onMethodCall(call: FlutterMethodCall, result: FlutterResult) {
@@ -232,7 +234,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             break;
             
         case "view_created":
-            viewCreated()
+            viewCreated(result: result)
             break;
             
         case "seek_to":
@@ -282,7 +284,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         result(info)
     }
     
-    private func seekTo(value: Double!, result: FlutterResult) {
+    private func seekTo(value: Double, result: FlutterResult) {
         let time = CMTimeMakeWithSeconds(Float64(value), preferredTimescale: 1000)
         let canSeek = player.currentItem != nil && player.currentItem!.duration > time;
         
