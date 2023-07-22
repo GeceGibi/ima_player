@@ -25,10 +25,9 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-
-    // if (project.android.hasProperty("namespace")) {
-    //     namespace 'io.flutter.plugins.videoplayer'
-    // }
+    if (project.android.hasProperty("namespace")) {
+         namespace 'dev.gece.imaplayer'
+    }
 
     compileSdkVersion 31
 
@@ -52,13 +51,6 @@ android {
 
     dependencies {
         def exoplayer_version = "1.1.0"
-        // implementation "com.google.android.exoplayer:exoplayer-core:${exoplayer_version}"
-        // implementation "com.google.android.exoplayer:exoplayer-ui:${exoplayer_version}"
-        // implementation "com.google.android.exoplayer:extension-ima:${exoplayer_version}"
-        // implementation "com.google.android.exoplayer:exoplayer-dash:${exoplayer_version}"
-        // implementation "com.google.android.exoplayer:exoplayer-smoothstreaming:${exoplayer_version}"
-
-        // implementation "androidx.media3:media3-session:${exoplayer_version}"
         implementation "androidx.media3:media3-exoplayer:${exoplayer_version}"
         implementation "androidx.media3:media3-exoplayer-ima:${exoplayer_version}"
         implementation "androidx.media3:media3-ui:${exoplayer_version}"
@@ -75,9 +67,4 @@ android {
             }
         }
     }
-}
-
-dependencies {
-    implementation 'androidx.media3:media3-exoplayer-ima:1.1.0'
-    implementation 'androidx.media3:media3-exoplayer:1.1.0'
 }
