@@ -11,25 +11,13 @@ and the Flutter guide for
 [developing packages and plugins](https://flutter.dev/developing-packages).
 -->
 
-Transform to "Marquee" from any widget.
+
+# Flutter Ima Player Plugin
+Ima Player for Android & iOS. <br/>
+Used ExoPlayer SDK for Android and AVPlayer for iOS.
 
 
 <img src="https://raw.githubusercontent.com/GeceGibi/marqueer/main/preview.gif" alt="preview">
-
-
-# ImaPlayer
-
-
-this.muted = false,
-this.autoPlay = true,
-this.isMixWithOtherMedia = true,
-this.allowBackgroundPlayback = false,
-this.showPlaybackControls = true,
-
-/// Just android
-this.controllerAutoShow = true,
-this.controllerHideOnTouch = true,
-
 
 ## ImaPlayer
 | Argument                        | Type                                              | Description      | Required | Default               |
