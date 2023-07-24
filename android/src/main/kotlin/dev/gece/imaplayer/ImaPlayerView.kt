@@ -7,9 +7,7 @@ import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
-import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -22,15 +20,21 @@ import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
 
+
 @RequiresApi(Build.VERSION_CODES.N)
 internal class ImaPlayerView(
-    context: Context,
-    id: Int,
-    args: Map<String, Any>,
-    messenger: BinaryMessenger,
-) : PlatformView {
+    private var context: Context,
+    private var id: Int,
+    private var args: Map<String, Any>,
+    private var messenger: BinaryMessenger
+) : PlatformView, Player.Listener {
 
-    private var tag = "IMA_PLAYER/$id"
+    private enum class EventType {
+        ADS,
+        PLAYER
+    }
+
+    private val tag = "IMA_PLAYER/$id"
 
     private var methodChannel: MethodChannel? = null
     private var eventChannel: EventChannel? = null
@@ -38,18 +42,25 @@ internal class ImaPlayerView(
 
     // Video Player
     private val playerView: PlayerView
-    private var exoPlayer: ExoPlayer
-    private var player: Player
+    private val player: ExoPlayer
 
-    // Ima
-    private var vastUrl: String? = null
-    private var adsLoader: ImaAdsLoader
+    // Ads
+    private val adsLoader: ImaAdsLoader
+
+    // Passed arguments
+    private var videoUrl: Uri? = null
+    private var imaTag: Uri? = null
+    private val isMuted: Boolean
+    private val isMixed: Boolean
+    private val autoPlay: Boolean
+
 
     override fun getView(): View {
         return playerView
     }
 
     override fun dispose() {
+        player.removeListener(this)
         player.release()
 
         playerView.removeAllViews()
@@ -63,14 +74,11 @@ internal class ImaPlayerView(
         eventSink = null
     }
 
-    init {
-        val videoUrl = args["video_url"] as String? ?: ""
-        vastUrl = args["ima_tag"] as String? ?: ""
-
+    private fun setupChannels() {
         methodChannel = MethodChannel(messenger, "gece.dev/imaplayer/$id")
         methodChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
-                "play" -> play(call.argument("video_url"), result)
+                "play" -> play(call.arguments as String?, result)
                 "pause" -> pause(result)
                 "stop" -> stop(result)
                 "view_created" -> viewCreated(result)
@@ -94,17 +102,17 @@ internal class ImaPlayerView(
                 eventSink = null
             }
         })
+    }
 
-        adsLoader = ImaAdsLoader.Builder(context)
-            .setAdErrorListener { event ->
-                eventSink?.error(
-                    event.error.errorCode.name,
-                    event.error.message,
-                    event.error
-                )
-            }
-            .setAdEventListener { event -> sendEvent("ads", event.type.name) }
-            .build()
+    init {
+        /// get and set arguments
+        videoUrl = Uri.parse(args["video_url"] as String?)
+        imaTag = Uri.parse(args["ima_tag"] as String?)
+        isMuted = args["is_muted"] as Boolean? == true
+        isMixed = args["is_mixed"] as Boolean? ?: true
+        autoPlay = args["auto_play"] as Boolean? ?: true
+
+        setupChannels()
 
         playerView = PlayerView(context)
         playerView.setShowNextButton(false)
@@ -112,10 +120,13 @@ internal class ImaPlayerView(
         playerView.setShowShuffleButton(false)
         playerView.setShowSubtitleButton(false)
         playerView.setShowVrButton(false)
-
         playerView.controllerAutoShow = args["controller_auto_show"] as Boolean? ?: true
         playerView.controllerHideOnTouch = args["controller_hide_on_touch"] as Boolean? ?: true
         playerView.useController = args["show_playback_controls"] as Boolean? ?: true
+
+        adsLoader = ImaAdsLoader.Builder(context)
+            .setAdEventListener { event -> sendEvent(EventType.ADS, event.type.name) }
+            .build()
 
         // Set up the factory for media sources, passing the ads loader and ad view providers.
         val dataSourceFactory = DefaultDataSource.Factory(context)
@@ -123,92 +134,63 @@ internal class ImaPlayerView(
             .setAdsLoaderProvider { adsLoader }
             .setAdViewProvider(playerView)
 
-
         // Create an ExoPlayer and set it as the player for content and ads.
-        exoPlayer = ExoPlayer.Builder(context).setMediaSourceFactory(mediaSourceFactory).build()
-        exoPlayer.setAudioAttributes(
+        player = ExoPlayer.Builder(context)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .setDeviceVolumeControlEnabled(true)
+            .build()
+
+        player.playWhenReady = autoPlay
+        player.setAudioAttributes(
             AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
-            !(args["is_mixed"] as Boolean? ?: true)
+            !isMixed
         )
 
-        player = object : ForwardingPlayer(exoPlayer) {
-            override fun isCommandAvailable(command: @Player.Command Int): Boolean {
-                return when (command) {
-                    COMMAND_SET_SPEED_AND_PITCH, COMMAND_GET_AUDIO_ATTRIBUTES -> false
-                    else -> super.isCommandAvailable(command)
-                }
-            }
-
-            override fun getAvailableCommands(): Player.Commands {
-                return super.getAvailableCommands()
-                    .buildUpon()
-                    .addAllCommands()
-                    .removeAll(COMMAND_SET_SPEED_AND_PITCH, COMMAND_GET_AUDIO_ATTRIBUTES)
-                    .build()
-            }
-
-            override fun setPlaybackParameters(playbackParameters: PlaybackParameters) {
-                // Setting speed and pitch is disabled
-            }
-
-            override fun setPlaybackSpeed(speed: Float) {
-                // Setting speed and pitch is disabled
-            }
-        }
-
-        player.playWhenReady = args["auto_play"] as Boolean? ?: false
-
-
-        if (args["is_muted"] as Boolean? == true) {
+        if (isMuted) {
             player.volume = 0.0F
         }
 
-        player.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                super.onPlaybackStateChanged(playbackState)
-                when (playbackState) {
-                    ExoPlayer.STATE_READY -> sendEvent("player", "READY")
-                    ExoPlayer.STATE_BUFFERING -> sendEvent("player", "BUFFERING")
-                }
-            }
-
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                super.onIsPlayingChanged(isPlaying)
-                sendEvent(
-                    "player",
-                    if (isPlaying) "PLAYING" else "PAUSED"
-                )
-            }
-        })
-
-
-
-        playerView.artworkDisplayMode = PlayerView.ARTWORK_DISPLAY_MODE_FIT
+        player.addListener(this)
         playerView.player = player
         adsLoader.setPlayer(player)
-        preparePlayer(videoUrl)
+
+        preparePlayer()
     }
 
-    private fun preparePlayer(videoUrl: String) {
-        val contentUri = Uri.parse(videoUrl)
-        val adTagUri = Uri.parse(vastUrl)
-        val mediaItem = MediaItem.Builder().setUri(contentUri)
-            .setAdsConfiguration(MediaItem.AdsConfiguration.Builder(adTagUri).build()).build()
+    override fun onPlaybackStateChanged(playbackState: Int) {
+        super.onPlaybackStateChanged(playbackState)
+        when (playbackState) {
+            ExoPlayer.STATE_READY -> sendEvent(EventType.PLAYER, "READY")
+            ExoPlayer.STATE_BUFFERING -> sendEvent(EventType.PLAYER, "BUFFERING")
+        }
+    }
 
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        super.onIsPlayingChanged(isPlaying)
+        sendEvent(EventType.PLAYER, if (isPlaying) "PLAYING" else "PAUSED")
+    }
+
+    private fun preparePlayer() {
+        val mediaItem = MediaItem.Builder().setUri(videoUrl)
+            .setAdsConfiguration(imaTag?.let {
+                MediaItem.AdsConfiguration.Builder(it).build()
+            }).build()
 
         player.setMediaItem(mediaItem)
         player.prepare()
     }
 
+
     private fun play(videoUrl: String?, result: MethodChannel.Result) {
         if (videoUrl != null) {
+            this.videoUrl = Uri.parse(videoUrl)
             player.stop()
             player.clearMediaItems()
             adsLoader.skipAd()
-            preparePlayer(videoUrl)
+            preparePlayer()
         }
 
-        player.play()
+        player.playWhenReady = true
         result.success(true)
     }
 
@@ -226,6 +208,7 @@ internal class ImaPlayerView(
         if (duration != null) {
             player.seekTo(duration.toLong())
         }
+
         result.success(duration != null)
     }
 
@@ -240,7 +223,6 @@ internal class ImaPlayerView(
     private fun skipAd(result: MethodChannel.Result) {
         if (player.isPlayingAd) {
             adsLoader.skipAd()
-
         }
 
         result.success(player.isPlayingAd)
@@ -258,6 +240,7 @@ internal class ImaPlayerView(
     private fun viewCreated(result: MethodChannel.Result) {
         result.success(true)
     }
+
     private fun viewDispose(result: MethodChannel.Result) {
         result.success(true)
     }
@@ -274,12 +257,10 @@ internal class ImaPlayerView(
         )
     }
 
-    private fun sendEvent(type: String, value: Any) {
+    private fun sendEvent(type: EventType, value: Any?) {
         eventSink?.success(
-            hashMapOf(
-                "type" to type,
-                "value" to value,
-            )
+            hashMapOf("type" to type.name.lowercase(), "value" to value)
         )
     }
 }
+

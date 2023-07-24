@@ -53,10 +53,8 @@ class _AppHomeState extends State<AppHome> {
     return Scaffold(
       body: Center(
         child: FilledButton(
-          onPressed: () {
-            Navigator.of(context).pushNamed('/player');
-          },
-          child: Icon(Icons.play_arrow),
+          onPressed: () => Navigator.of(context).pushNamed('/player'),
+          child: const Icon(Icons.play_arrow),
         ),
       ),
     );
@@ -65,7 +63,6 @@ class _AppHomeState extends State<AppHome> {
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key});
-
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
@@ -76,7 +73,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   final controller = ImaPlayerController(
     videoUrl:
-        'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+        'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
     imaTag:
         'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
     options: const ImaPlayerOptions(
@@ -116,6 +113,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     controller.onPlayerEvent.listen((event) {
       print('onPlayerEvent > $event');
+
+      switch (event) {
+        case ImaPlayerEvents.PLAYING:
+          getInfoHandler();
+          break;
+
+        default:
+          // no-op
+          break;
+      }
     });
   }
 

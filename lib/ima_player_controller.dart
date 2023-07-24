@@ -55,9 +55,7 @@ class ImaPlayerController {
   }
 
   Future<bool> play({String? videoUrl}) async {
-    return (await _methodChannel?.invokeMethod<bool>('play', {
-          if (videoUrl != null) 'video_url': videoUrl,
-        })) ??
+    return (await _methodChannel?.invokeMethod<bool>('play', videoUrl)) ??
         false;
   }
 
