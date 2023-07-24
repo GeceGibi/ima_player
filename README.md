@@ -80,7 +80,7 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 
     /// ...
     AspectRatio(
-        aspectRatio: aspectRatio,
+        aspectRatio: 16 / 9,
         child: ImaPlayer(controller: controller),
     ),
     /// ...
