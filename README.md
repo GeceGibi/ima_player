@@ -17,8 +17,21 @@ Ima Player for Android & iOS. <br/>
 Used ExoPlayer SDK for Android and AVPlayer for iOS.
 
 
-<img src="https://raw.githubusercontent.com/GeceGibi/ima_player/main/ios_preview.gif" alt="iOS Preview" height="500px">
-<img src="https://raw.githubusercontent.com/GeceGibi/ima_player/main/android_preview.gif" alt="Android Preview" height="500px">
+<table>
+  <tr>
+    <td>
+        <h3>iOS<h3/>
+        <img src="https://raw.githubusercontent.com/GeceGibi/ima_player/main/ios_preview.gif" alt="iOS Preview" height="500px">
+    </td>
+    <td>
+        <h3>Android<h3/>
+        <img src="https://raw.githubusercontent.com/GeceGibi/ima_player/main/android_preview.gif" alt="Android Preview" height="500px">
+    </td>
+   </tr> 
+</table>
+
+
+
 
 ## ImaPlayer
 | Argument                        | Type                                              | Required |
