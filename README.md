@@ -21,17 +21,17 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 <img src="https://raw.githubusercontent.com/GeceGibi/ima_player/main/android_preview.gif" alt="Android Preview" height="500px">
 
 ## ImaPlayer
-| Argument                        | Type                                              | Description      | Required | Default               |
-| ------------------------------- |-------------------------------------------------  | ---------------- | -------- | --------------------- |
-| controller                      | `ImaPlayerController`                             |                  | YES      | -                     |
+| Argument                        | Type                                              | Required |
+| ------------------------------- |-------------------------------------------------  | -------- |
+| controller                      | `ImaPlayerController`                             | YES      |
 
 
 ## ImaPlayerController - Constructor Arguments
-| Argument                        | Type                                              | Description      | Required | Default               |
-| ------------------------------- |-------------------------------------------------  | ---------------- | -------- | --------------------- |
-| videoUrl                        | String                                            |                  | YES      | -                     |
-| imaTag                          | String?                                           |                  | NO       | 15.0                  |
-| options                         | `ImaPlayerOptions`                                |                  | NO       | `ImaPlayerOptions()`  |
+| Argument                        | Type                                              | Required | Default               |
+| ------------------------------- |-------------------------------------------------  | -------- | --------------------- |
+| videoUrl                        | String                                            | YES      | -                     |
+| imaTag                          | String?                                           | NO       | -                     |
+| options                         | `ImaPlayerOptions`                                | NO       | `ImaPlayerOptions()`  |
 
 
 ## ImaPlayerController - Instance members
@@ -57,15 +57,16 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 ```
 
 ## ImaPlayerOptions
-| Argument                        | Type                                              | Description                               | Required | Default               |
-| ------------------------------- |-------------------------------------------------  | ----------------------------------------- | -------- | --------------------- |
-| muted                           | bool                                              |                                           | NO       | false                 |
-| autoPlay                        | bool                                              |                                           | NO       | true                  |
-| isMixWithOtherMedia             | bool                                              |                                           | NO       | true                  |
-| allowBackgroundPlayback         | bool                                              | Continue playing when app goes background | NO       | false                 |
-| showPlaybackControls            | bool                                              |                                           | NO       | true                  |
-| controllerAutoShow              | bool                                              | Just for android                          | NO       | true                  |
-| controllerHideOnTouch           | bool                                              | Just for android                          | NO       | true                  |
+| Argument                        | Type  | Description                               | Required | Default   |
+| ------------------------------- |------ | ----------------------------------------- | -------- | --------- |
+| muted                           | bool  |                                           | NO       | false     |
+| autoPlay                        | bool  |                                           | NO       | true      |
+| isMixWithOtherMedia             | bool  |                                           | NO       | true      |
+| allowBackgroundPlayback         | bool  | Continue playing when app goes background | NO       | false     |
+| showPlaybackControls            | bool  |                                           | NO       | true      |
+| controllerAutoShow              | bool  | Just for android                          | NO       | true      |
+| controllerHideOnTouch           | bool  | Just for android                          | NO       | true      |
+
 
 
 ```dart
@@ -83,6 +84,4 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
         child: ImaPlayer(controller: controller),
     ),
     /// ...
-  
-
 ```
