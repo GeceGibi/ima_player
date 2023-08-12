@@ -1,3 +1,11 @@
+## 1.0.0
+- Updated README.md
+- Breaking Change: removed `getSize` method
+- Added `getVideoInfo` method
+- Added `getAdInfo` method
+- Added `ImaVideoInfo`
+- Added `ImaAdInfo`
+
 ## 0.0.3
 - Updated README.md
 

@@ -53,8 +53,8 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
     controller.play({String? videoUrl}) -> Future<bool>;
     controller.pause() -> Future<bool>;
     controller.stop() -> Future<bool>
-    controller.getSize() -> Future<Size>
-    controller.getInfo() -> Future<ImaPlayerInfo>
+    controller.getVideoInfo() -> Future<ImaVideoInfo>
+    controller.getAdInfo() -> Future<ImaAdInfo>
     controller.seekTo(Duration) -> Future<bool>
     controller.skipAd() -> Future<bool>
     controller.setVolume(double volume) -> Future<bool>
