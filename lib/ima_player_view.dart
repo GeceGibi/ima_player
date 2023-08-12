@@ -1,4 +1,4 @@
-part of 'ima_player.dart';
+part of ima_player;
 
 class _ImaPlayerView extends StatelessWidget {
   const _ImaPlayerView({required this.controller});
@@ -46,9 +46,9 @@ class _ImaPlayerView extends StatelessWidget {
         },
         surfaceFactory: (context, controller) {
           return AndroidViewSurface(
+            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
             controller: controller as AndroidViewController,
             gestureRecognizers: gestureRecognizers,
-            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
           );
         },
       );

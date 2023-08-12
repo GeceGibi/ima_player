@@ -1,6 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
-part of 'ima_player.dart';
+part of ima_player;
 
 enum ImaPlayerEvents {
   READY,
@@ -49,14 +49,14 @@ enum ImaAdsEvents {
   AD_PERIOD_ENDED,
   UNKNOWN;
 
-  static ImaAdsEvents fromString(String? str) {
+  static ImaAdsEvents fromString(String? event) {
     /// Added for ios sdk
-    if (str == "COMPLETE") {
+    if (event == "COMPLETE") {
       return ImaAdsEvents.COMPLETED;
     }
 
     for (final value in values) {
-      if (value.name == str) {
+      if (value.name == event) {
         return value;
       }
     }

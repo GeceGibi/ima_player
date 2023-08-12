@@ -1,3 +1,5 @@
+library ima_player;
+
 import 'dart:async';
 import 'dart:io';
 
@@ -58,6 +60,12 @@ class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
           widget.controller.pause();
           break;
 
+        case AppLifecycleState.resumed:
+          if (widget.controller.options.autoPlay) {
+            widget.controller.play();
+          }
+          break;
+
         default:
           // no-op
           break;
@@ -73,6 +81,7 @@ class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.controller.dispose();
     super.dispose();
   }

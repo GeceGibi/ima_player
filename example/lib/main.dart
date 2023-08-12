@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:ima_player/ima_player.dart';
 
@@ -69,13 +71,14 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   var aspectRatio = 16 / 9;
-  ImaPlayerInfo? info;
+  ImaVideoInfo? videoInfo;
+  ImaAdInfo? adInfo;
 
   final controller = ImaPlayerController(
     videoUrl:
         'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
     imaTag:
-        'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
+        'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_preroll_skippable&sz=640x480&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
     options: const ImaPlayerOptions(
       muted: false,
       autoPlay: true,
@@ -83,15 +86,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
     ),
   );
 
-  Future<void> getInfoHandler() async {
-    info = await controller.getInfo();
+  Future<void> getAdInfoHandler() async {
+    adInfo = await controller.getAdInfo();
+    setState(() {});
+  }
+
+  Future<void> getVideoInfoHandler() async {
+    videoInfo = await controller.getVideoInfo();
     setState(() {});
   }
 
   void updateAspectRatio() async {
-    final size = await controller.getSize();
+    final info = await controller.getVideoInfo();
 
-    if (size.width != 0 && size.height != 0) {
+    if (info.size.width != 0 && info.size.height != 0) {
       // setState(() {
       //   aspectRatio = size.width / size.height;
       // });
@@ -102,26 +110,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getAdInfoHandler();
+      getVideoInfoHandler();
+
+      // Navigator.pop(context);
+    });
+
     controller.onAdsEvent.listen((event) async {
       print('onAdsEvent > $event');
 
       if (event == ImaAdsEvents.CONTENT_RESUME_REQUESTED ||
           event == ImaAdsEvents.CONTENT_PAUSE_REQUESTED) {
         updateAspectRatio();
-      }
-    });
-
-    controller.onPlayerEvent.listen((event) {
-      print('onPlayerEvent > $event');
-
-      switch (event) {
-        case ImaPlayerEvents.PLAYING:
-          getInfoHandler();
-          break;
-
-        default:
-          // no-op
-          break;
       }
     });
   }
@@ -137,6 +138,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return Scaffold(
       appBar: AppBar(),
       body: ListView(
+        padding: const EdgeInsets.only(bottom: 40),
         children: [
           AspectRatio(
             aspectRatio: aspectRatio,
@@ -176,13 +178,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
             child: Text('SEEK TO (10 SEC)'),
           ),
           FilledButton(
-            onPressed: getInfoHandler,
-            child: Text('GET INFO'),
+            onPressed: getAdInfoHandler,
+            child: Text('GET AD INFO'),
           ),
-          Text(
-            info.toString(),
-            maxLines: 10,
-          )
+          FilledButton(
+            onPressed: getVideoInfoHandler,
+            child: Text('GET VIDEO INFO'),
+          ),
+          const Divider(),
+          Text(videoInfo.toString()),
+          const Divider(),
+          Text(adInfo.toString())
         ],
       ),
     );

@@ -3,6 +3,7 @@ package dev.gece.imaplayer
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.media3.common.AudioAttributes
@@ -14,6 +15,14 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.ima.ImaAdsLoader
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
+import com.google.ads.interactivemedia.v3.api.Ad
+import com.google.ads.interactivemedia.v3.api.AdEvent
+import com.google.ads.interactivemedia.v3.api.AdsLoader
+import com.google.ads.interactivemedia.v3.api.AdsManager
+import com.google.ads.interactivemedia.v3.api.AdsManagerLoadedEvent
+import com.google.ads.interactivemedia.v3.api.player.AdMediaInfo
+import com.google.ads.interactivemedia.v3.api.player.VideoAdPlayer
+import com.google.ads.interactivemedia.v3.api.player.VideoProgressUpdate
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
@@ -46,6 +55,9 @@ internal class ImaPlayerView(
 
     // Ads
     private val adsLoader: ImaAdsLoader
+    private var adsManager: AdsManager? = null
+    private var ad: Ad? = null
+    private var adBuffering = false;
 
     // Passed arguments
     private var videoUrl: Uri? = null
@@ -84,8 +96,8 @@ internal class ImaPlayerView(
                 "view_created" -> viewCreated(result)
                 "seek_to" -> seekTo(call.arguments as Int?, result)
                 "set_volume" -> setVolume(call.arguments as Double?, result)
-                "get_size" -> getSize(result)
-                "get_info" -> getInfo(result)
+                "get_video_info" -> getVideoInfo(result)
+                "get_ad_info" -> getAdInfo(result)
                 "skip_ad" -> skipAd(result)
                 "dispose" -> viewDispose(result)
                 else -> result.notImplemented()
@@ -125,14 +137,42 @@ internal class ImaPlayerView(
         playerView.useController = args["show_playback_controls"] as Boolean? ?: true
 
         adsLoader = ImaAdsLoader.Builder(context)
-            .setAdEventListener { event -> sendEvent(EventType.ADS, event.type.name) }
+            .setAdEventListener { event ->
+                run {
+                    ad = event.ad
+                    sendEvent(EventType.ADS, event.type.name)
+                }
+            }
+
+            .setVideoAdPlayerCallback(object : VideoAdPlayer.VideoAdPlayerCallback {
+                override fun onAdProgress(info: AdMediaInfo?, progress: VideoProgressUpdate?) {}
+                override fun onBuffering(info: AdMediaInfo?) {
+                    adBuffering = true
+                }
+
+                override fun onContentComplete() {
+                    ad = null
+                }
+
+                override fun onEnded(p0: AdMediaInfo?) {}
+                override fun onError(p0: AdMediaInfo?) {}
+                override fun onLoaded(p0: AdMediaInfo?) {}
+                override fun onPause(p0: AdMediaInfo?) {}
+                override fun onPlay(p0: AdMediaInfo?) {}
+                override fun onResume(p0: AdMediaInfo?) {}
+                override fun onVolumeChanged(p0: AdMediaInfo?, p1: Int) {}
+            })
             .build()
+
+        adsLoader.adsLoader?.addAdsLoadedListener { event -> adsManager = event.adsManager }
+
 
         // Set up the factory for media sources, passing the ads loader and ad view providers.
         val dataSourceFactory = DefaultDataSource.Factory(context)
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
             .setAdsLoaderProvider { adsLoader }
             .setAdViewProvider(playerView)
+
 
         // Create an ExoPlayer and set it as the player for content and ads.
         player = ExoPlayer.Builder(context)
@@ -228,14 +268,6 @@ internal class ImaPlayerView(
         result.success(player.isPlayingAd)
     }
 
-    private fun getSize(result: MethodChannel.Result) {
-        result.success(
-            hashMapOf(
-                "height" to player.videoSize.height,
-                "width" to player.videoSize.width
-            )
-        )
-    }
 
     private fun viewCreated(result: MethodChannel.Result) {
         result.success(true)
@@ -245,19 +277,47 @@ internal class ImaPlayerView(
         result.success(true)
     }
 
-    private fun getInfo(result: MethodChannel.Result) {
+
+    private fun getVideoInfo(result: MethodChannel.Result) {
         result.success(
             hashMapOf(
-                "current_position" to player.currentPosition,
-                "total_duration" to player.duration,
+                "current_position" to if (player.isPlayingAd) 0.0 else roundForTwo(player.currentPosition.toDouble()),
+                "total_duration" to roundForTwo(player.contentDuration.toDouble()),
                 "is_playing" to (player.isPlaying && !player.isPlayingAd),
-                "is_playing_ad" to player.isPlayingAd,
-                "is_buffering" to (player.bufferedPercentage != 0 && player.bufferedPercentage != 100),
+                "is_buffering" to (player.bufferedPercentage in 1..99),
+                "height" to player.videoSize.height,
+                "width" to player.videoSize.width
             )
         )
     }
 
+    private fun getAdInfo(result: MethodChannel.Result) {
+        return result.success(
+            hashMapOf(
+                "ad_title" to ad?.title,
+                "ad_duration" to ad?.duration,
+                "ad_current_position" to if (player.isPlayingAd) roundForTwo(player.currentPosition.toDouble()) else 0.0,
+                "ad_height" to ad?.vastMediaHeight,
+                "ad_width" to ad?.vastMediaWidth,
+                "ad_type" to ad?.contentType,
+                "ad_skip_time_offset" to ad?.skipTimeOffset,
+
+                "is_playing" to player.isPlayingAd,
+                "is_buffering" to adBuffering,
+                "is_skippable" to ad?.isSkippable,
+                "is_ui_disabled" to ad?.isUiDisabled,
+
+                "total_ad_count" to ad?.adPodInfo?.totalAds,
+            )
+        )
+    }
+
+    private fun roundForTwo(value: Double?): Double {
+        return "%.1f".format((value ?: 0.0) / 1000).toDouble()
+    }
+
     private fun sendEvent(type: EventType, value: Any?) {
+
         eventSink?.success(
             hashMapOf("type" to type.name.lowercase(), "value" to value)
         )
