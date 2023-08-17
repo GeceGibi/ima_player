@@ -185,7 +185,8 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             "description": adErrorData.adError.description,
         ] as [String : Any?]
         
-        sendEvent(type: .ads, value: error)
+        // todo: update
+        // sendEvent(type: .ads, value: error)
     }
     
     // MARK: - IMAAdsManagerDelegate
@@ -207,7 +208,8 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             "description": error.description,
         ] as [String : Any?]
         
-        sendEvent(type: .ads, value: error)
+        // todo: update
+        // sendEvent(type: .ads, value: error)
     }
     
     func adsManagerDidRequestContentPause(_ adsManager: IMAAdsManager) {
@@ -238,12 +240,29 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         adsLoader.requestAds(with: request)
     }
     
+    
+    var timer = Timer()
     func viewCreated(result: FlutterResult){
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.requestAds()
-        }
+        // just in case this button is tapped multiple times
+        timer.invalidate()
+
+        // start the timer
+        timer = Timer.scheduledTimer(
+            timeInterval: 0.1,
+            target: self,
+            selector: #selector(checkViewIsReady),
+            userInfo: nil,
+            repeats: true
+        )
         
         result(true)
+    }
+    
+    @objc func checkViewIsReady(){
+        if(self.avPlayerViewController.isViewLoaded && (self.avPlayerViewController.view.window != nil)) {
+            timer.invalidate()
+            self.requestAds()
+        }
     }
     
     func onMethodCall(call: FlutterMethodCall, result: FlutterResult) {
@@ -385,6 +404,8 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     func dispose(result: FlutterResult) {
+        timer.invalidate()
+
         adsManager?.destroy()
         adsManager = nil
         
