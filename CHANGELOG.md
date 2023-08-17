@@ -1,3 +1,8 @@
+## 1.0.1
+- Fixed ios crash issue
+> When trying `adsRequest()` before view attached
+
+
 ## 1.0.0
 - Updated README.md
 - Breaking Change: removed `getSize` method

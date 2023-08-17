@@ -1,10 +1,10 @@
 name: ima_player
 description: iOS, Android supported IMA Player. Used ExoPlayer for Android and AVPlayer for iOS.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/GeceGibi/ima_player
 
 environment:
-  sdk: '>=3.0.6 <4.0.0'
+  sdk: '>=3.1.0 <4.0.0'
   flutter: ">=3.3.0"
 
 dependencies:
