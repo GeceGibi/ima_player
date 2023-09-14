@@ -40,12 +40,22 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 
 
 ## ImaPlayerController - Constructor Arguments
+| Argument                        | Type                                              | Required | Default                   |
+| ------------------------------- |-------------------------------------------------  | -------- | ------------------------- |
+| videoUrl                        | String                                            | YES      | -                         |
+| imaTag                          | String?                                           | NO       | -                         |
+| options                         | `ImaPlayerOptions`                                | NO       | `ImaPlayerOptions()`      |
+| adsLoaderSettings               | `ImaAdsLoaderSettings`                            | NO       | `ImaAdsLoaderSettings()`  |
+
+
+## ImaAdsLoaderSettings - Constructor Arguments
 | Argument                        | Type                                              | Required | Default               |
 | ------------------------------- |-------------------------------------------------  | -------- | --------------------- |
-| videoUrl                        | String                                            | YES      | -                     |
-| imaTag                          | String?                                           | NO       | -                     |
-| options                         | `ImaPlayerOptions`                                | NO       | `ImaPlayerOptions()`  |
-
+| autoPlayAdBreaks                | bool                                              | NO       | true                  |
+| enableDebugMode                 | bool                                              | NO       | false                 |
+| language                        | String                                            | NO       | "en"
+| ppid                            | String?                                           | NO       | -
+ 
 
 ## ImaPlayerController - Instance members
 ```dart

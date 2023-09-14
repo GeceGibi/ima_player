@@ -1,6 +1,6 @@
 name: ima_player
 description: iOS, Android supported IMA Player. Used ExoPlayer for Android and AVPlayer for iOS.
-version: 1.0.1
+version: 1.1.0
 homepage: https://github.com/GeceGibi/ima_player
 
 environment:

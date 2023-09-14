@@ -1,3 +1,8 @@
+## 1.1.0
+- Fixed ios lifecycle bug [#3](https://github.com/GeceGibi/ima_player/issues/3)
+- Added `adsLoaderSettings` [#2](https://github.com/GeceGibi/ima_player/issues/2)
+- Update dependencies
+
 ## 1.0.1
 - Fixed ios crash issue
 > When trying `adsRequest()` before view attached
