@@ -9,11 +9,13 @@ class ImaPlayerController {
     required this.videoUrl,
     this.imaTag,
     this.options = const ImaPlayerOptions(),
+    this.adsLoaderSettings = const ImaAdsLoaderSettings(),
   });
 
   final String videoUrl;
   final String? imaTag;
   final ImaPlayerOptions options;
+  final ImaAdsLoaderSettings adsLoaderSettings;
 
   MethodChannel? _methodChannel;
   EventChannel? _eventChannel;

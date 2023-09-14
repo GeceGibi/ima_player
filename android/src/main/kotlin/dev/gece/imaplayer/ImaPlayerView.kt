@@ -20,6 +20,8 @@ import com.google.ads.interactivemedia.v3.api.AdEvent
 import com.google.ads.interactivemedia.v3.api.AdsLoader
 import com.google.ads.interactivemedia.v3.api.AdsManager
 import com.google.ads.interactivemedia.v3.api.AdsManagerLoadedEvent
+import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
+import com.google.ads.interactivemedia.v3.api.ImaSdkSettings
 import com.google.ads.interactivemedia.v3.api.player.AdMediaInfo
 import com.google.ads.interactivemedia.v3.api.player.VideoAdPlayer
 import com.google.ads.interactivemedia.v3.api.player.VideoProgressUpdate
@@ -126,6 +128,8 @@ internal class ImaPlayerView(
 
         setupChannels()
 
+
+
         playerView = PlayerView(context)
         playerView.setShowNextButton(false)
         playerView.setShowPreviousButton(false)
@@ -136,7 +140,16 @@ internal class ImaPlayerView(
         playerView.controllerHideOnTouch = args["controller_hide_on_touch"] as Boolean? ?: true
         playerView.useController = args["show_playback_controls"] as Boolean? ?: true
 
+        var adsLoaderSettings = args["ads_loader_settings"] as HashMap<String, Any>
+        var settings = ImaSdkFactory.getInstance().createImaSdkSettings()
+
+        settings.ppid = adsLoaderSettings["ppid"] as? String
+        settings.language = adsLoaderSettings["language"] as String
+        settings.autoPlayAdBreaks = adsLoaderSettings["auto_play_ad_breaks"] as Boolean
+        settings.isDebugMode = adsLoaderSettings["enable_debug_mode"] as Boolean
+
         adsLoader = ImaAdsLoader.Builder(context)
+            .setImaSdkSettings(settings)
             .setAdEventListener { event ->
                 run {
                     ad = event.ad
@@ -172,7 +185,6 @@ internal class ImaPlayerView(
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
             .setAdsLoaderProvider { adsLoader }
             .setAdViewProvider(playerView)
-
 
         // Create an ExoPlayer and set it as the player for content and ads.
         player = ExoPlayer.Builder(context)

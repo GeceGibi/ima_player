@@ -37,11 +37,7 @@ class ImaPlayerOptions {
 }
 
 class ImaPlayer extends StatefulWidget {
-  const ImaPlayer({
-    required this.controller,
-    super.key,
-  });
-
+  const ImaPlayer({required this.controller, super.key});
   final ImaPlayerController controller;
 
   @override
@@ -58,17 +54,14 @@ class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
         case AppLifecycleState.paused:
         case AppLifecycleState.inactive:
           widget.controller.pause();
-          break;
 
         case AppLifecycleState.resumed:
           if (widget.controller.options.autoPlay) {
             widget.controller.play();
           }
-          break;
 
         default:
-          // no-op
-          break;
+        // no-op
       }
     }
   }

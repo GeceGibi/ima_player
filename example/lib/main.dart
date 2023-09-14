@@ -84,6 +84,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
       autoPlay: true,
       isMixWithOtherMedia: false,
     ),
+    adsLoaderSettings: const ImaAdsLoaderSettings(
+      autoPlayAdBreaks: true,
+      language: 'tr',
+    ),
   );
 
   Future<void> getAdInfoHandler() async {
