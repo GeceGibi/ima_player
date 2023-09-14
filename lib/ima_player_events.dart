@@ -50,9 +50,10 @@ enum ImaAdsEvents {
   UNKNOWN;
 
   static ImaAdsEvents fromString(String? event) {
-    /// Added for ios sdk
     if (event == "COMPLETE") {
       return ImaAdsEvents.COMPLETED;
+    } else if (event == "PAUSE") {
+      return ImaAdsEvents.PAUSED;
     }
 
     for (final value in values) {

@@ -61,3 +61,26 @@ class ImaAdInfo {
   String toString() =>
       'ImaAdInfo(adSkipTimeOffset: $adSkipTimeOffset, adDuration: $adDuration, adCurrentPosition: $adCurrentPosition, size: $size, adTitle: $adTitle, adType: $adType, isPlaying: $isPlaying, isBuffering: $isBuffering, isSkippable: $isSkippable, isUiDisabled: $isUiDisabled, totalAdCount: $totalAdCount)';
 }
+
+class ImaAdsLoaderSettings {
+  const ImaAdsLoaderSettings({
+    this.autoPlayAdBreaks = true,
+    this.enableDebugMode = false,
+    this.language = "en",
+    this.ppid,
+  });
+
+  final String? ppid;
+
+  /// https://developers.google.com/interactive-media-ads/docs/sdks/ios/client-side/localization?hl=en
+  final String language;
+  final bool enableDebugMode;
+  final bool autoPlayAdBreaks;
+
+  Map<String, dynamic> toJson() => {
+        if (ppid != null) 'ppid': ppid,
+        'language': language,
+        'enable_debug_mode': enableDebugMode,
+        'auto_play_ad_breaks': autoPlayAdBreaks,
+      };
+}

@@ -49,20 +49,28 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     init(
         frame: CGRect,
         viewIdentifier viewId: Int64,
-        arguments args: Dictionary<String, Any>?,
+        arguments args: Dictionary<String, Any>,
         binaryMessenger messenger: FlutterBinaryMessenger
     ) {
         
-        imaTag = (args?["ima_tag"] ?? "") as! String
-        videoUrl = URL(string: (args?["video_url"] ?? "") as! String)!
-        autoPlay = (args?["auto_play"] ?? false) as! Bool
-        isMuted = (args?["is_muted"] ?? false) as! Bool
-        isMixed = (args?["is_mixed"] ?? true) as! Bool
-        showPlaybackControls = (args?["show_playback_controls"] ?? true) as! Bool
-        
+        imaTag = (args["ima_tag"] ?? "") as! String
+        videoUrl = URL(string: (args["video_url"] ?? "") as! String)!
+        autoPlay = (args["auto_play"] ?? false) as! Bool
+        isMuted = (args["is_muted"] ?? false) as! Bool
+        isMixed = (args["is_mixed"] ?? true) as! Bool
+        showPlaybackControls = (args["show_playback_controls"] ?? true) as! Bool
         
         avPlayerViewController = AVPlayerViewController()
-        adsLoader = IMAAdsLoader(settings: nil)
+
+        let settings = IMASettings()
+        let adsLoaderSettings = args["ads_loader_settings"] as! Dictionary<String, Any>
+        
+        settings.ppid = adsLoaderSettings["ppid"] as? String
+        settings.language = adsLoaderSettings["language"] as! String
+        settings.autoPlayAdBreaks = adsLoaderSettings["auto_play_ad_breaks"] as! Bool
+        settings.enableDebugMode = adsLoaderSettings["enable_debug_mode"] as! Bool
+        
+        adsLoader = IMAAdsLoader(settings: settings)
         
         super.init()
         
@@ -171,7 +179,6 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         adsManager = adsLoadedData.adsManager
         adsManager?.delegate = self
         adsManager?.initialize(with: nil)
-       
     }
     
     func adsLoader(_ loader: IMAAdsLoader, failedWith adErrorData: IMAAdLoadingErrorData) {
@@ -237,6 +244,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             userContext: nil
         )
         
+
         adsLoader.requestAds(with: request)
     }
     

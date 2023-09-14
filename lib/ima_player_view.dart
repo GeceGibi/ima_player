@@ -17,6 +17,7 @@ class _ImaPlayerView extends StatelessWidget {
       'controller_auto_show': controller.options.controllerAutoShow,
       'controller_hide_on_touch': controller.options.controllerHideOnTouch,
       'show_playback_controls': controller.options.showPlaybackControls,
+      'ads_loader_settings': controller.adsLoaderSettings.toJson(),
     };
 
     final gestureRecognizers = <Factory<OneSequenceGestureRecognizer>>{

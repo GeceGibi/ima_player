@@ -25,7 +25,7 @@ class ImaPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
         return ImaPlayerView(
             frame: frame,
             viewIdentifier: viewId,
-            arguments: args as! Dictionary<String, Any>?,
+            arguments: args as! Dictionary<String, Any>,
             binaryMessenger: messenger)
     }
 }
