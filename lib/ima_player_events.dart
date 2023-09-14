@@ -54,6 +54,8 @@ enum ImaAdsEvents {
       return ImaAdsEvents.COMPLETED;
     } else if (event == "PAUSE") {
       return ImaAdsEvents.PAUSED;
+    } else if (event == "RESUME") {
+      return ImaAdsEvents.RESUMED;
     }
 
     for (final value in values) {

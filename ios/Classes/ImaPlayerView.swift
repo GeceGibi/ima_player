@@ -61,7 +61,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         showPlaybackControls = (args["show_playback_controls"] ?? true) as! Bool
         
         avPlayerViewController = AVPlayerViewController()
-
+        
         let settings = IMASettings()
         let adsLoaderSettings = args["ads_loader_settings"] as! Dictionary<String, Any>
         
@@ -69,6 +69,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         settings.language = adsLoaderSettings["language"] as! String
         settings.autoPlayAdBreaks = adsLoaderSettings["auto_play_ad_breaks"] as! Bool
         settings.enableDebugMode = adsLoaderSettings["enable_debug_mode"] as! Bool
+        settings.enableBackgroundPlayback = true
         
         adsLoader = IMAAdsLoader(settings: settings)
         
@@ -129,34 +130,34 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
                                change: [NSKeyValueChangeKey : Any]?,
                                context: UnsafeMutableRawPointer?) {
         switch(keyPath){
-            case "status":
-                if player?.status == .readyToPlay {
-                    sendEvent(type: .player, value: "READY")
-                } else if player?.status == .failed {
-                    sendEvent(type: .player, value: "FAILED")
-                }
-                break;
-                
-            case "rate":
-                if player != nil {
-                    sendEvent(type: .player, value: player.rate > 0 ? "PLAYING": "PAUSED")
-                }
-                break;
-                
-            case "playbackBufferFull": fallthrough
-            case "playbackBufferEmpty":
-                isBuffering = false
-                break;
-                
-            case "playbackLikelyToKeepUp":
-                isBuffering = true
-                sendEvent(type: .player, value: "BUFFERING")
-                break;
-                
-                
-            case .none: fallthrough
-            case .some(_): break
-                // no-op
+        case "status":
+            if player?.status == .readyToPlay {
+                sendEvent(type: .player, value: "READY")
+            } else if player?.status == .failed {
+                sendEvent(type: .player, value: "FAILED")
+            }
+            break;
+            
+        case "rate":
+            if player != nil {
+                sendEvent(type: .player, value: player.rate > 0 ? "PLAYING": "PAUSED")
+            }
+            break;
+            
+        case "playbackBufferFull": fallthrough
+        case "playbackBufferEmpty":
+            isBuffering = false
+            break;
+            
+        case "playbackLikelyToKeepUp":
+            isBuffering = true
+            sendEvent(type: .player, value: "BUFFERING")
+            break;
+            
+            
+        case .none: fallthrough
+        case .some(_): break
+            // no-op
         }
     }
     
@@ -185,22 +186,19 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         if autoPlay {
             avPlayerViewController.player?.play()
         }
-        
-        let error = [
-            "code": adErrorData.adError.code,
-            "message": adErrorData.adError.message,
-            "description": adErrorData.adError.description,
-        ] as [String : Any?]
-        
-        // todo: update
-        // sendEvent(type: .ads, value: error)
     }
     
     // MARK: - IMAAdsManagerDelegate
     func adsManager(_ adsManager: IMAAdsManager, didReceive event: IMAAdEvent) {
         sendEvent(type: .ads, value: event.typeString)
-    
+        
         ad = event.ad
+        
+        if  event.type == IMAAdEventType.SKIPPED ||
+                event.type == IMAAdEventType.COMPLETE ||
+                event.type == IMAAdEventType.ALL_ADS_COMPLETED {
+            ad = nil
+        }
         
         // Play each ad once it has been loaded
         if event.type == IMAAdEventType.LOADED {
@@ -209,18 +207,11 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     func adsManager(_ adsManager: IMAAdsManager, didReceive error: IMAAdError) {
-        let error = [
-            "code": error.code,
-            "message": error.message,
-            "description": error.description,
-        ] as [String : Any?]
         
-        // todo: update
-        // sendEvent(type: .ads, value: error)
     }
     
     func adsManagerDidRequestContentPause(_ adsManager: IMAAdsManager) {
-        if player.rate > 0 {
+        if player != nil && player.rate > 0 {
             player.pause()
         }
     }
@@ -244,7 +235,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             userContext: nil
         )
         
-
+        
         adsLoader.requestAds(with: request)
     }
     
@@ -253,7 +244,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     func viewCreated(result: FlutterResult){
         // just in case this button is tapped multiple times
         timer.invalidate()
-
+        
         // start the timer
         timer = Timer.scheduledTimer(
             timeInterval: 0.1,
@@ -302,7 +293,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         case "get_video_info":
             getVideoInfo(result: result)
             break;
-        
+            
         case "get_ad_info":
             getAdInfo(result: result)
             break;
@@ -319,7 +310,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             result(FlutterMethodNotImplemented)
         }
     }
-
+    
     private func getAdInfo(result: FlutterResult) {
         let info: Dictionary<String, Any?> = [
             "ad_title": ad?.adTitle,
@@ -342,10 +333,10 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     private func getVideoInfo(result: FlutterResult){
-     
+        
         let totalDurationSeconds = player.currentItem?.duration.seconds ?? 0.0
         let totalSeconds = totalDurationSeconds.isNaN ? 0.0 : totalDurationSeconds
-       
+        
         
         let info: Dictionary<String, Any?> = [
             "current_position": roundForTwo(value: player.currentItem?.currentTime().seconds),
@@ -355,7 +346,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             "width": Int(player.currentItem?.presentationSize.width ?? 0),
             "height": Int(player.currentItem?.presentationSize.height ?? 0)
         ]
-
+        
         result(info)
     }
     
@@ -382,11 +373,22 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             player.replaceCurrentItem(with: playerItem)
         }
         
-        player?.play()
+        if ad != nil && adsManager != nil && !adsManager!.adPlaybackInfo.isPlaying {
+            adsManager?.resume();
+        } else {
+            player?.play()
+        }
+        
         result(true)
     }
     private func pause(result: FlutterResult) {
-        player?.pause()
+        if (adsManager?.adPlaybackInfo.isPlaying ?? false) {
+            adsManager?.pause()
+        } else {
+            player?.pause()
+        }
+        
+        
         result(true)
     }
     
@@ -413,7 +415,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     
     func dispose(result: FlutterResult) {
         timer.invalidate()
-
+        
         adsManager?.destroy()
         adsManager = nil
         
