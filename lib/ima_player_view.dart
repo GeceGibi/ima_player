@@ -1,8 +1,13 @@
 part of ima_player;
 
 class _ImaPlayerView extends StatelessWidget {
-  const _ImaPlayerView({required this.controller});
+  const _ImaPlayerView({
+    required this.controller,
+    required this.gestureRecognizers,
+  });
+
   final ImaPlayerController controller;
+  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
 
   @override
   Widget build(BuildContext context) {
@@ -18,12 +23,6 @@ class _ImaPlayerView extends StatelessWidget {
       'controller_hide_on_touch': controller.options.controllerHideOnTouch,
       'show_playback_controls': controller.options.showPlaybackControls,
       'ads_loader_settings': controller.adsLoaderSettings.toJson(),
-    };
-
-    final gestureRecognizers = <Factory<OneSequenceGestureRecognizer>>{
-      Factory<OneSequenceGestureRecognizer>(
-        () => EagerGestureRecognizer(),
-      ),
     };
 
     if (Platform.isAndroid) {
@@ -57,6 +56,7 @@ class _ImaPlayerView extends StatelessWidget {
       return UiKitView(
         viewType: viewType,
         creationParams: creationParams,
+        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
         gestureRecognizers: gestureRecognizers,
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: (id) {

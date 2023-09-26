@@ -37,8 +37,14 @@ class ImaPlayerOptions {
 }
 
 class ImaPlayer extends StatefulWidget {
-  const ImaPlayer({required this.controller, super.key});
+  const ImaPlayer({
+    required this.controller,
+    this.gestureRecognizers = const {},
+    super.key,
+  });
+
   final ImaPlayerController controller;
+  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
 
   @override
   State<ImaPlayer> createState() => _ImaPlayerState();
@@ -82,6 +88,9 @@ class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
   // final ImaPlayerOptions options;
   @override
   Widget build(BuildContext context) {
-    return _ImaPlayerView(controller: widget.controller);
+    return _ImaPlayerView(
+      controller: widget.controller,
+      gestureRecognizers: widget.gestureRecognizers,
+    );
   }
 }

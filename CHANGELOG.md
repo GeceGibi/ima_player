@@ -1,3 +1,8 @@
+## 1.1.1
+- Fixed `gestureRecognizer` bug [#6](https://github.com/GeceGibi/ima_player/issues/6)
+- Added `gestureRecognizer` property to `ImaPlayer` widget
+
+
 ## 1.1.0
 - Fixed ios lifecycle bug [#3](https://github.com/GeceGibi/ima_player/issues/3)
 - Added `adsLoaderSettings` [#2](https://github.com/GeceGibi/ima_player/issues/2)

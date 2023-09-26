@@ -37,6 +37,7 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 | Argument                        | Type                                              | Required |
 | ------------------------------- |-------------------------------------------------  | -------- |
 | controller                      | `ImaPlayerController`                             | YES      |
+| gestureRecognizer               | `Set<Factory<OneSequenceGestureRecognizer>>`      | NO       |
 
 
 ## ImaPlayerController - Constructor Arguments
