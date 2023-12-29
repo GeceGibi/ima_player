@@ -18,6 +18,7 @@ class ImaPlayerOptions {
   const ImaPlayerOptions({
     this.muted = false,
     this.autoPlay = true,
+    this.adsEnabled = true,
     this.isMixWithOtherMedia = true,
     this.allowBackgroundPlayback = false,
     this.showPlaybackControls = true,
@@ -29,6 +30,7 @@ class ImaPlayerOptions {
 
   final bool muted;
   final bool autoPlay;
+  final bool adsEnabled;
   final bool controllerAutoShow;
   final bool controllerHideOnTouch;
   final bool isMixWithOtherMedia;

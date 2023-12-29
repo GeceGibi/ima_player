@@ -76,18 +76,35 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   final controller = ImaPlayerController(
     videoUrl:
-        'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     imaTag:
-        'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_preroll_skippable&sz=640x480&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
+        'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/vmap_ad_samples&sz=640x480&cust_params=sample_ar%3Dpremidpostlongpod&ciu_szs=300x250&gdfp_req=1&ad_rule=1&output=vmap&unviewed_position_start=1&env=vp&impl=s&cmsid=496&vid=short_onecue&correlator=',
     options: const ImaPlayerOptions(
-      muted: false,
-      autoPlay: false,
+      muted: true,
+      autoPlay: true,
+      adsEnabled: false,
       isMixWithOtherMedia: false,
       showPlaybackControls: true,
     ),
     adsLoaderSettings: const ImaAdsLoaderSettings(
       autoPlayAdBreaks: true,
-      language: 'tr',
+    ),
+  );
+
+  final controllerSkippable = ImaPlayerController(
+    videoUrl:
+        'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    imaTag:
+        'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_preroll_skippable&sz=640x480&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
+    options: const ImaPlayerOptions(
+      muted: false,
+      autoPlay: true,
+      adsEnabled: false,
+      isMixWithOtherMedia: false,
+      showPlaybackControls: true,
+    ),
+    adsLoaderSettings: const ImaAdsLoaderSettings(
+      autoPlayAdBreaks: true,
     ),
   );
 
@@ -105,9 +122,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final info = await controller.getVideoInfo();
 
     if (info.size.width != 0 && info.size.height != 0) {
-      // setState(() {
-      //   aspectRatio = size.width / size.height;
-      // });
+      setState(() {
+        aspectRatio = info.size.width / info.size.height;
+      });
     }
   }
 
@@ -122,10 +139,27 @@ class _PlayerScreenState extends State<PlayerScreen> {
       // Navigator.pop(context);
     });
 
+    controller.onPlayerEvent.listen((event) {
+      print('onPlayerEvent: $event');
+    });
+
     controller.onAdsEvent.listen((event) async {
-      if (event == ImaAdsEvents.CONTENT_RESUME_REQUESTED ||
-          event == ImaAdsEvents.CONTENT_PAUSE_REQUESTED) {
-        updateAspectRatio();
+      print('onAdsEvent: $event');
+
+      switch (event) {
+        case ImaAdsEvents.CONTENT_RESUME_REQUESTED:
+        case ImaAdsEvents.ALL_ADS_COMPLETED:
+        case ImaAdsEvents.COMPLETED:
+          updateAspectRatio();
+          controller.setVolume(1.0);
+
+        case ImaAdsEvents.CONTENT_PAUSE_REQUESTED:
+          controller.setVolume(0.0);
+
+        case ImaAdsEvents.TAPPED:
+          controller.setVolume(1.0);
+
+        default:
       }
     });
   }
@@ -146,6 +180,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
           AspectRatio(
             aspectRatio: aspectRatio,
             child: ImaPlayer(controller: controller),
+          ),
+          AspectRatio(
+            aspectRatio: aspectRatio,
+            child: ImaPlayer(controller: controllerSkippable),
           ),
           FilledButton(
             onPressed: controller.play,

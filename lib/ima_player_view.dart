@@ -1,4 +1,4 @@
-part of ima_player;
+part of 'ima_player.dart';
 
 class _ImaPlayerView extends StatelessWidget {
   const _ImaPlayerView({
@@ -19,6 +19,7 @@ class _ImaPlayerView extends StatelessWidget {
       'is_mixed': controller.options.isMixWithOtherMedia,
       'auto_play': controller.options.autoPlay,
       'video_url': controller.videoUrl,
+      'ads_enabled': controller.options.adsEnabled,
       'controller_auto_show': controller.options.controllerAutoShow,
       'controller_hide_on_touch': controller.options.controllerHideOnTouch,
       'show_playback_controls': controller.options.showPlaybackControls,

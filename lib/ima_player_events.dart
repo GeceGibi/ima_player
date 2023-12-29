@@ -1,6 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
-part of ima_player;
+part of 'ima_player.dart';
 
 enum ImaPlayerEvents {
   READY,
@@ -50,16 +50,8 @@ enum ImaAdsEvents {
   UNKNOWN;
 
   static ImaAdsEvents fromString(String? event) {
-    if (event == "COMPLETE") {
-      return ImaAdsEvents.COMPLETED;
-    } else if (event == "PAUSE") {
-      return ImaAdsEvents.PAUSED;
-    } else if (event == "RESUME") {
-      return ImaAdsEvents.RESUMED;
-    }
-
     for (final value in values) {
-      if (value.name == event) {
+      if (value.name == event || value.name == '${event}D') {
         return value;
       }
     }

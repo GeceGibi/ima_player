@@ -1,4 +1,4 @@
-part of ima_player;
+part of 'ima_player.dart';
 
 class ImaVideoInfo {
   ImaVideoInfo.fromJson(Map<String, dynamic> json)

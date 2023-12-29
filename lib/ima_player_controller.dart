@@ -1,8 +1,10 @@
 // ignore_for_file: constant_identifier_names
 
-part of ima_player;
+part of 'ima_player.dart';
 
 typedef ViewCreatedCallback = void Function();
+
+final _kControllerInstances = <ImaPlayerController>[];
 
 class ImaPlayerController {
   ImaPlayerController({
@@ -27,9 +29,17 @@ class ImaPlayerController {
   late final onAdsEvent = _onAdsEventController.stream;
 
   StreamSubscription? _eventChannelListener;
+
   void _attach(int viewId) {
+    assert(
+      _methodChannel == null && _eventChannel == null,
+      "Cannot attach multiple video instance",
+    );
+
     _methodChannel = MethodChannel('gece.dev/imaplayer/$viewId');
     _eventChannel = EventChannel('gece.dev/imaplayer/$viewId/events');
+
+    _kControllerInstances.add(this);
 
     final stream = _eventChannel!.receiveBroadcastStream();
 
@@ -65,21 +75,40 @@ class ImaPlayerController {
 
   Future<void> _onViewCreated() async {
     await _methodChannel?.invokeMethod('view_created');
+
+    if (_kControllerInstances.length > 1) {
+      for (var i = 0; i < _kControllerInstances.length; i++) {
+        if (i >= _kControllerInstances.length - 1) {
+          break;
+        }
+
+        _kControllerInstances[i].pause();
+      }
+    }
   }
 
-  Future<bool> play({String? videoUrl}) async {
-    final result = await _methodChannel?.invokeMethod<bool>('play', videoUrl);
-    return result ?? false;
+  void pauseOtherPlayers() {
+    for (final instance in _kControllerInstances) {
+      if (instance != this) {
+        instance.pause();
+      }
+    }
   }
 
-  Future<bool> pause() async {
-    final result = await _methodChannel?.invokeMethod<bool>('pause');
-    return result ?? false;
+  Future<void> play({String? videoUrl}) async {
+    await _methodChannel?.invokeMethod<bool>('play', videoUrl);
+
+    if (!options.isMixWithOtherMedia) {
+      pauseOtherPlayers();
+    }
   }
 
-  Future<bool> stop() async {
-    final result = await _methodChannel?.invokeMethod<bool>('stop');
-    return result ?? false;
+  Future<void> pause() async {
+    await _methodChannel?.invokeMethod<bool>('pause');
+  }
+
+  Future<void> stop() async {
+    await _methodChannel?.invokeMethod<bool>('stop');
   }
 
   Future<bool> seekTo(Duration duration) async {
@@ -123,6 +152,7 @@ class ImaPlayerController {
   }
 
   void dispose() {
+    _kAllPlayerControllerInstances.remove(this);
     _methodChannel?.invokeMethod('dispose');
     _eventChannelListener?.cancel();
     _onAdsEventController.close();
