@@ -364,17 +364,18 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         result(info)
     }
     
-    private func getVideoInfo(result: FlutterResult){
+    private func getVideoInfo(result: FlutterResult) {
         let totalDurationSeconds = avPlayer.currentItem?.duration.seconds ?? 0.0
         let totalSeconds = totalDurationSeconds.isNaN ? 0.0 : totalDurationSeconds
+        let curItem = avPlayer.currentItem
         
         let info: Dictionary<String, Any?> = [
-            "current_position": roundForTwo(value: avPlayer.currentItem?.currentTime().seconds),
+            "current_position": roundForTwo(value: curItem?.currentTime().seconds),
             "total_duration": Double(String(format: "%.1f", totalSeconds)),
             "is_playing": avPlayer.rate > 0,
             "is_buffering": isBuffering,
-            "width": Int(avPlayer.currentItem?.presentationSize.width ?? 0),
-            "height": Int(avPlayer.currentItem?.presentationSize.height ?? 0)
+            "width": Int(curItem?.presentationSize.width ?? 0),
+            "height": Int(curItem?.presentationSize.height ?? 0)
         ]
         
         result(info)
@@ -441,10 +442,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     private func skipAd(result: FlutterResult){
-        if ad?.isSkippable ?? false {
-            imaAdsManager?.skip()
-        }
-        
+        imaAdsManager?.skip()
         result(nil)
     }
     
