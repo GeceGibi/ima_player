@@ -116,25 +116,9 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         }
 
         addAvPlayerListener()
-        
+
         avPlayer.isMuted = imaPlayerSettings.isMuted
 
-        /*
-        let audioSession = AVAudioSession.sharedInstance()
-        
-        do {
-            if imaPlayerSettings.isMixed {
-                try audioSession.setCategory(.playback, options: .mixWithOthers
-                )
-            } else {
-                try audioSession.setCategory(.playback, options: .duckOthers)
-            }
-            
-            try audioSession.setActive(true)
-        } catch _{
-            
-        }
-        */
     }
     
     func configurePlayerController(frame: CGRect){
