@@ -94,7 +94,6 @@ class _ImaPlayerState extends State<ImaPlayer>
     super.dispose();
   }
 
-  // final ImaPlayerOptions options;
   @override
   Widget build(BuildContext context) {
     super.build(context);

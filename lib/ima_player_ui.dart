@@ -101,6 +101,8 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
       return;
     }
 
+    watchUi();
+
     final position = await controller.position;
     var nextPosition = position + backwardAndForwardStep;
 
@@ -115,6 +117,8 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
     if (!controller.value.isReady || !controller.value.isPlaying) {
       return;
     }
+
+    watchUi();
 
     final position = await controller.position;
     var nextPosition = position - backwardAndForwardStep;
