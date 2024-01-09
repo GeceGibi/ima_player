@@ -5,11 +5,13 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 
 /** ImaPlugin */
 class ImaPlayerPlugin : FlutterPlugin {
-    override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         binding.platformViewRegistry.registerViewFactory(
             "gece.dev/imaplayer", ImaPlayerViewFactory(binding.binaryMessenger)
         )
     }
-    override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {}
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+
+    }
 
 }

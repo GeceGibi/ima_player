@@ -100,29 +100,31 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         imaAdsLoader.delegate = self
     }
     
-    func setPlayerSettingsAndInit(args: Dictionary<String, Any>){
+    func setPlayerSettingsAndInit(args: Dictionary<String, Any>) {
         imaPlayerSettings.imaTag = args["ima_tag"] as? String
         imaPlayerSettings.videoUrl = args["video_url"] as? String
         imaPlayerSettings.autoPlay = args["auto_play"] as? Bool ?? false
         imaPlayerSettings.isMuted = args["is_muted"] as? Bool ?? false
         imaPlayerSettings.isMixed = args["is_mixed"] as? Bool ?? true
         imaPlayerSettings.showPlaybackControls = args["show_playback_controls"] as? Bool ?? true
-        imaPlayerSettings.isAdsEnabled = args["ads_enabled"] as? Bool ?? true
+        isShowingContent = !imaPlayerSettings.isAdsEnabled
         
         if imaPlayerSettings.videoUrl != nil {
             avPlayer = AVPlayer(url: URL(string: imaPlayerSettings.videoUrl!)!)
+            
+            if !imaPlayerSettings.isAdsEnabled && imaPlayerSettings.autoPlay {
+                avPlayer.play()
+            }
         } else {
             avPlayer = AVPlayer()
         }
 
-        addAvPlayerListener()
-
         avPlayer.isMuted = imaPlayerSettings.isMuted
-
+        
+        addAvPlayerListener()
     }
     
-    func configurePlayerController(frame: CGRect){
-        
+    func configurePlayerController(frame: CGRect) {
         avPlayerViewController.player = avPlayer
         avPlayerViewController.view.frame = frame
         
@@ -205,7 +207,6 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         settings.enablePreloading = true
         settings.openWebLinksExternally = true
     
-        
         imaAdsManager!.initialize(with: settings)
     }
     
@@ -221,7 +222,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         ad = event.ad
         
         if event.type == IMAAdEventType.LOADED && !isDisposed {
-            if imaPlayerSettings.isMuted {
+            if imaPlayerSettings.isMuted || !imaPlayerSettings.autoPlay {
                 adsManager.volume = 0
             }
             
@@ -403,25 +404,20 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             let playerItem = AVPlayerItem.init(url: URL(string: videoUrl!)!)
             avPlayer.replaceCurrentItem(with: playerItem)
             addAvPlayerListener()
-            requestAds()
         }
         
-        if isShowingContent || !imaPlayerSettings.isAdsEnabled {
-            avPlayer.play()
-        } else {
+        if imaPlayerSettings.isAdsEnabled && !isShowingContent {
             imaAdsManager?.resume();
+        } else {
+            avPlayer.play()
         }
         
         result(nil)
     }
     
     private func pause(result: FlutterResult) {
-        if (isShowingContent) {
-            avPlayer.pause()
-        } else {
-            imaAdsManager?.pause()
-        }
-        
+        avPlayer.pause()
+        imaAdsManager?.pause()
         result(nil)
     }
     

@@ -6,88 +6,138 @@ typedef ViewCreatedCallback = void Function();
 
 final _kControllerInstances = <ImaPlayerController>[];
 
-class ImaPlayerController {
-  ImaPlayerController({
-    required this.videoUrl,
+class ImaPlayerController extends ValueNotifier<PlayerEvent> {
+  ImaPlayerController(
+    this.uri, {
     this.imaTag,
+    this.headers = const {},
     this.options = const ImaPlayerOptions(),
     this.adsLoaderSettings = const ImaAdsLoaderSettings(),
-  });
+  }) : super(PlayerEvent(volume: options.initialVolume));
 
-  final String videoUrl;
+  final String uri;
   final String? imaTag;
   final ImaPlayerOptions options;
   final ImaAdsLoaderSettings adsLoaderSettings;
+  final Map<String, String> headers;
 
+  ///
   MethodChannel? _methodChannel;
   EventChannel? _eventChannel;
 
-  final _onPlayerEventController = StreamController<ImaPlayerEvents?>();
-  late final onPlayerEvent = _onPlayerEventController.stream;
+  var _isDisposed = false;
+  var _isPlayingAd = false;
 
-  final _onAdsEventController = StreamController<ImaAdsEvents>();
-  late final onAdsEvent = _onAdsEventController.stream;
+  ///
+  final _adEventStreamController = StreamController<AdEventType>.broadcast();
+  Stream<AdEventType> get onAdEvent => _adEventStreamController.stream;
 
-  StreamSubscription? _eventChannelListener;
+  ///
+  final _onReadyCompleter = Completer<void>();
+  Future<void> get onPlayerReady => _onReadyCompleter.future;
+
+  ///
+  final _onAdLoadedStreamController = StreamController<AdInfo>.broadcast();
+  Stream<AdInfo> get onAdLoaded => _onAdLoadedStreamController.stream;
+
+  ///
+  StreamSubscription? _eventListener;
 
   void _attach(int viewId) {
-    assert(
-      _methodChannel == null && _eventChannel == null,
-      "Cannot attach multiple video instance",
-    );
-
     _methodChannel = MethodChannel('gece.dev/imaplayer/$viewId');
     _eventChannel = EventChannel('gece.dev/imaplayer/$viewId/events');
 
     _kControllerInstances.add(this);
 
-    final stream = _eventChannel!.receiveBroadcastStream();
+    _eventListener = _eventChannel?.receiveBroadcastStream().listen((event) {
+      switch (event["type"]) {
+        case "ready":
+          if (!_onReadyCompleter.isCompleted) {
+            _onReadyCompleter.complete();
+          }
 
-    _eventChannelListener = stream.listen(
-      (event) {
-        if (event is Map && event.containsKey('type')) {
-          final value = event["value"];
+          value = value.copyWith(isReady: true);
 
-          switch (event['type']) {
-            case 'ads':
-              if (value is Map) {
-                _onAdsEventController.addError(value, StackTrace.current);
-              } else {
-                _onAdsEventController.add(
-                  ImaAdsEvents.fromString(
-                    (value as String?)?.toUpperCase().replaceAll(' ', '_'),
-                  ),
-                );
-              }
+        case "playing":
+          value = value.copyWith(isPlaying: true, isEnded: false);
 
+        case "paused":
+          value = value.copyWith(isPlaying: false);
+
+        case "ended":
+          value = value.copyWith(isEnded: true, isPlaying: false);
+
+        case "duration":
+          value = value.copyWith(
+            duration: Duration(milliseconds: event["value"]),
+          );
+
+        case "volume":
+          value = value.copyWith(volume: event["volume"]);
+
+        case "buffering_start":
+          value = value.copyWith(isBuffering: true);
+
+        case "buffering_end":
+          value = value.copyWith(isBuffering: false);
+
+        case "size_changed":
+          final size = List<int>.from(event["size"]).map(
+            (e) => e.toDouble(),
+          );
+
+          value = value.copyWith(size: Size(size.first, size.last));
+
+        case "ad_info":
+          _onAdLoadedStreamController.add(
+            AdInfo.fromJson(Map<String, dynamic>.from(event['info'])),
+          );
+
+        case "ad_event":
+          final adEvent = AdEventType.fromString(event["value"]);
+
+          if (adEvent
+              case AdEventType.content_pause_requested ||
+                  AdEventType.started ||
+                  AdEventType.resumed) {
+            _isPlayingAd = true;
+          } else if (adEvent
+              case AdEventType.content_resume_requested || AdEventType.paused) {
+            _isPlayingAd = false;
+          }
+
+          _adEventStreamController.add(adEvent);
+
+          value = value.copyWith(isPlayingAd: _isPlayingAd);
+      }
+    })
+      ?..onError((error) {
+        if (error is PlatformException) {
+          switch (error.code) {
+            case "player_error":
+              _onReadyCompleter.completeError(error);
               break;
 
-            case 'player':
-              _onPlayerEventController.add(
-                ImaPlayerEvents.fromString(value),
-              );
+            case "ad_error":
+              _onAdLoadedStreamController.addError(error);
               break;
+
+            default:
+              throw error;
           }
         }
-      },
-    );
+      });
   }
 
   Future<void> _onViewCreated() async {
+    if (_isDisposed) return;
+
     await _methodChannel?.invokeMethod('view_created');
-
-    if (_kControllerInstances.length > 1) {
-      for (var i = 0; i < _kControllerInstances.length; i++) {
-        if (i >= _kControllerInstances.length - 1) {
-          break;
-        }
-
-        _kControllerInstances[i].pause();
-      }
-    }
   }
 
   void pauseOtherPlayers() {
+    if (_isDisposed) return;
+
     for (final instance in _kControllerInstances) {
       if (instance != this) {
         instance.pause();
@@ -95,7 +145,17 @@ class ImaPlayerController {
     }
   }
 
+  static void pauseAllPlayers() {
+    for (final instance in _kControllerInstances) {
+      if (instance.value.isPlaying) {
+        instance.pause();
+      }
+    }
+  }
+
   Future<void> play({String? videoUrl}) async {
+    if (_isDisposed) return;
+
     await _methodChannel?.invokeMethod<bool>('play', videoUrl);
 
     if (!options.isMixWithOtherMedia) {
@@ -104,58 +164,54 @@ class ImaPlayerController {
   }
 
   Future<void> pause() async {
+    if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('pause');
   }
 
   Future<void> stop() async {
+    if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('stop');
   }
 
-  Future<bool> seekTo(Duration duration) async {
-    final result = await _methodChannel?.invokeMethod<bool>(
+  Future<Duration> get position async {
+    if (_isDisposed) return Duration.zero;
+    final dur = await _methodChannel?.invokeMethod<int>('current_position');
+    return Duration(milliseconds: dur ?? 0);
+  }
+
+  Future<Duration> get bufferedPosition async {
+    if (_isDisposed) return Duration.zero;
+    final dur = await _methodChannel?.invokeMethod<int>('buffered_position');
+    return Duration(milliseconds: dur ?? 0);
+  }
+
+  Future<void> seekTo(Duration duration) async {
+    if (_isDisposed) return;
+    await _methodChannel?.invokeMethod<bool>(
         'seek_to',
         Platform.isAndroid
             ? duration.inMilliseconds
             : duration.inMilliseconds / 1000);
-
-    return result ?? false;
   }
 
-  Future<bool> skipAd() async {
-    final result = await _methodChannel?.invokeMethod<bool>('skip_ad');
-    return result ?? false;
+  Future<void> skipAd() async {
+    if (_isDisposed) return;
+    await _methodChannel?.invokeMethod<bool>('skip_ad');
   }
 
-  Future<bool> setVolume(double volume) async {
-    final result = await _methodChannel?.invokeMethod<bool>(
-      'set_volume',
-      volume,
-    );
-
-    return result ?? false;
+  Future<void> setVolume(double volume) async {
+    if (_isDisposed) return;
+    await _methodChannel?.invokeMethod<bool>('set_volume', volume);
   }
 
-  Future<ImaVideoInfo> getVideoInfo() async {
-    final info = await _methodChannel?.invokeMapMethod<String, dynamic>(
-      'get_video_info',
-    );
-
-    return ImaVideoInfo.fromJson(Map<String, dynamic>.from(info ?? {}));
-  }
-
-  Future<ImaAdInfo> getAdInfo() async {
-    final info = await _methodChannel?.invokeMapMethod<String, dynamic>(
-      'get_ad_info',
-    );
-
-    return ImaAdInfo.fromJson(Map<String, dynamic>.from(info ?? {}));
-  }
-
+  @override
   void dispose() {
-    _kAllPlayerControllerInstances.remove(this);
+    _isDisposed = true;
+    _eventListener?.cancel();
+    _kControllerInstances.remove(this);
+    _onAdLoadedStreamController.close();
+    _adEventStreamController.close();
     _methodChannel?.invokeMethod('dispose');
-    _eventChannelListener?.cancel();
-    _onAdsEventController.close();
-    _onPlayerEventController.close();
+    super.dispose();
   }
 }

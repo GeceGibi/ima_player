@@ -1,70 +1,122 @@
-part of 'ima_player.dart';
+// ignore_for_file: constant_identifier_names
 
-class ImaVideoInfo {
-  ImaVideoInfo.fromJson(Map<String, dynamic> json)
-      : currentPosition = json['current_position'] ?? 0.0,
-        totalDuration = json['total_duration'] ?? 0.0,
-        isBuffering = json['is_buffering'] ?? false,
-        isPlaying = json['is_playing'] ?? false,
-        size = Size(
-          (json['width'] ?? 0).toDouble(),
-          (json['height'] ?? 0).toDouble(),
-        );
+import 'dart:ui';
 
-  final double currentPosition;
-  final double totalDuration;
-  final bool isPlaying;
-  final bool isBuffering;
-  final Size size;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  @override
-  String toString() =>
-      'ImaPlayerInfo(currentPosition: $currentPosition, totalDuration: $totalDuration, isPlaying: $isPlaying, isBuffering: $isBuffering, size: $size)';
+part 'ima_player_models.freezed.dart';
+part 'ima_player_models.g.dart';
+
+//! ----------------------------------------------------------------------------
+enum AdEventType {
+  all_ads_completed,
+  ad_break_fetch_error,
+  clicked,
+  completed,
+  cuepoints_changed,
+  content_pause_requested,
+  content_resume_requested,
+  first_quartile,
+  log,
+  ad_break_ready,
+  midpoint,
+  paused,
+  resumed,
+  skippable_state_changed,
+  skipped,
+  started,
+  tapped,
+  icon_tapped,
+  icon_fallback_image_closed,
+  third_quartile,
+  loaded,
+  ad_progress,
+  ad_buffering,
+  ad_break_started,
+  ad_break_ended,
+  ad_period_started,
+  ad_period_ended,
+  unknown;
+
+  static AdEventType fromString(String? event) {
+    for (final value in values) {
+      if (value.name == event || value.name == '${event}D') {
+        return value;
+      }
+    }
+
+    return AdEventType.unknown;
+  }
 }
 
-class ImaAdInfo {
-  ImaAdInfo.fromJson(Map<String, dynamic> json)
-      : adSkipTimeOffset = json['ad_skip_time_offset'] ?? 0.0,
-        adDuration = json['ad_duration'] ?? 0.0,
-        adCurrentPosition = json['ad_current_position'] ?? 0.0,
-        adTitle = json['ad_title'] ?? '',
-        adType = json['ad_type'] ?? '',
-        size = Size(
-          (json['ad_width'] ?? 0).toDouble(),
-          (json['ad_height'] ?? 0).toDouble(),
-        ),
-
-        ///
-        isPlaying = json['is_playing'] ?? false,
-        isBuffering = json['is_buffering'] ?? false,
-        isSkippable = json['is_skippable'] ?? false,
-        isUiDisabled = json['is_ui_disabled'] ?? false,
-
-        ///
-        totalAdCount = json['total_ad_count'] ?? 0;
-
-  final double adCurrentPosition;
-  final String adTitle;
-  final double adDuration;
-  final Size size;
-  final String adType;
-  final double adSkipTimeOffset;
-
-  final bool isPlaying;
-  final bool isBuffering;
-  final bool isSkippable;
-  final bool isUiDisabled;
-
-  final int totalAdCount;
-
-  @override
-  String toString() =>
-      'ImaAdInfo(adSkipTimeOffset: $adSkipTimeOffset, adDuration: $adDuration, adCurrentPosition: $adCurrentPosition, size: $size, adTitle: $adTitle, adType: $adType, isPlaying: $isPlaying, isBuffering: $isBuffering, isSkippable: $isSkippable, isUiDisabled: $isUiDisabled, totalAdCount: $totalAdCount)';
+Size _sizeFromJson(List data) {
+  final resolution = List<num>.from(data);
+  return Size(resolution.first.toDouble(), resolution.last.toDouble());
 }
 
+List<num> _sizeToJson(Size size) {
+  return [size.width, size.height];
+}
+
+Duration _durationFromJson(num milliseconds) {
+  return Duration(seconds: milliseconds.toInt());
+}
+
+int _durationToJson(Duration duration) {
+  return duration.inSeconds;
+}
+
+@freezed
+class AdInfo with _$AdInfo {
+  const factory AdInfo({
+    @Default(Duration.zero)
+    @JsonKey(fromJson: _durationFromJson, toJson: _durationToJson)
+    Duration duration,
+    @Default(Duration.zero)
+    @JsonKey(
+      name: 'skip_time_offset',
+      fromJson: _durationFromJson,
+      toJson: _durationToJson,
+    )
+    Duration skipTimeOffset,
+    @Default('') String adid,
+    @Default(Size.zero)
+    @JsonKey(fromJson: _sizeFromJson, toJson: _sizeToJson)
+    Size size,
+    @Default('') @JsonKey(name: 'advertiser_name') String advertiserName,
+    @Default('') @JsonKey(name: 'ad_system') String adSystem,
+    @Default('') @JsonKey(name: 'content_type') String contentType,
+    @Default('') String title,
+    @Default('') String description,
+    @Default(0) int bitrate,
+    @Default(false) bool skippable,
+    @Default(true) bool linear,
+    @Default(false) @JsonKey(name: 'ui_disabled') bool uiDisabled,
+    @Default(false) @JsonKey(name: 'is_bumper') bool isBumper,
+    @Default(0) @JsonKey(name: 'total_ads') int totalAds,
+  }) = _AdInfo;
+
+  factory AdInfo.fromJson(Map<String, dynamic> json) => _$AdInfoFromJson(json);
+}
+
+//! ----------------------------------------------------------------------------
+@freezed
+class PlayerEvent with _$PlayerEvent {
+  const factory PlayerEvent({
+    @Default(false) bool isBuffering,
+    @Default(false) bool isPlaying,
+    @Default(false) bool isPlayingAd,
+    @Default(false) bool isReady,
+    @Default(false) bool isEnded,
+    @Default(0.0) double volume,
+    @Default(Size.zero) Size size,
+    @Default(Duration.zero) Duration duration,
+  }) = _PlayerEvent;
+}
+
+//! ----------------------------------------------------------------------------
 class ImaAdsLoaderSettings {
   const ImaAdsLoaderSettings({
-    this.autoPlayAdBreaks = true,
     this.enableDebugMode = false,
     this.language = "en",
     this.ppid,
@@ -75,12 +127,10 @@ class ImaAdsLoaderSettings {
   /// https://developers.google.com/interactive-media-ads/docs/sdks/ios/client-side/localization?hl=en
   final String language;
   final bool enableDebugMode;
-  final bool autoPlayAdBreaks;
 
   Map<String, dynamic> toJson() => {
         if (ppid != null) 'ppid': ppid,
         'language': language,
         'enable_debug_mode': enableDebugMode,
-        'auto_play_ad_breaks': autoPlayAdBreaks,
       };
 }

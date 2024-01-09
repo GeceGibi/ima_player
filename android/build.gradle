@@ -9,7 +9,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath 'com.android.tools.build:gradle:7.3.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -50,7 +50,7 @@ android {
     }
 
     dependencies {
-        def exoplayer_version = "1.1.0"
+        def exoplayer_version = "1.2.0"
         implementation "androidx.media3:media3-exoplayer:${exoplayer_version}"
         implementation "androidx.media3:media3-exoplayer-ima:${exoplayer_version}"
         implementation "androidx.media3:media3-ui:${exoplayer_version}"

@@ -1,8 +1,8 @@
 part of 'ima_player.dart';
 
-class _ImaPlayerView extends StatelessWidget {
-  const _ImaPlayerView({
-    required this.controller,
+class _ImaPlayerView extends StatefulWidget {
+  const _ImaPlayerView(
+    this.controller, {
     required this.gestureRecognizers,
   });
 
@@ -10,47 +10,34 @@ class _ImaPlayerView extends StatelessWidget {
   final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
 
   @override
+  State<_ImaPlayerView> createState() => _ImaPlayerViewState();
+}
+
+class _ImaPlayerViewState extends State<_ImaPlayerView> {
+  @override
   Widget build(BuildContext context) {
     const viewType = 'gece.dev/imaplayer';
 
     final creationParams = {
-      'ima_tag': controller.imaTag,
-      'is_muted': controller.options.muted,
-      'is_mixed': controller.options.isMixWithOtherMedia,
-      'auto_play': controller.options.autoPlay,
-      'video_url': controller.videoUrl,
-      'ads_enabled': controller.options.adsEnabled,
-      'controller_auto_show': controller.options.controllerAutoShow,
-      'controller_hide_on_touch': controller.options.controllerHideOnTouch,
-      'show_playback_controls': controller.options.showPlaybackControls,
-      'ads_loader_settings': controller.adsLoaderSettings.toJson(),
+      'uri': widget.controller.uri,
+      'headers': widget.controller.headers,
+      'ima_tag': widget.controller.imaTag,
+      'is_mixed': widget.controller.options.isMixWithOtherMedia,
+      'auto_play': widget.controller.options.autoPlay,
+      'initial_volume': widget.controller.options.initialVolume,
+      'show_playback_controls': widget.controller.options.showPlaybackControls,
+      'ads_loader_settings': widget.controller.adsLoaderSettings.toJson(),
     };
 
     if (Platform.isAndroid) {
-      return PlatformViewLink(
+      return AndroidView(
         viewType: viewType,
-        onCreatePlatformView: (params) {
-          return PlatformViewsService.initAndroidView(
-            id: params.id,
-            viewType: viewType,
-            layoutDirection: TextDirection.ltr,
-            creationParams: creationParams,
-            creationParamsCodec: const StandardMessageCodec(),
-            onFocus: () => params.onFocusChanged(true),
-          )
-            ..addOnPlatformViewCreatedListener((id) {
-              params.onPlatformViewCreated(id);
-              controller._attach(id);
-              controller._onViewCreated();
-            })
-            ..create();
-        },
-        surfaceFactory: (context, controller) {
-          return AndroidViewSurface(
-            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-            controller: controller as AndroidViewController,
-            gestureRecognizers: gestureRecognizers,
-          );
+        creationParams: creationParams,
+        layoutDirection: TextDirection.ltr,
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: (id) {
+          widget.controller._attach(id);
+          widget.controller._onViewCreated();
         },
       );
     } else {
@@ -58,11 +45,11 @@ class _ImaPlayerView extends StatelessWidget {
         viewType: viewType,
         creationParams: creationParams,
         hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-        gestureRecognizers: gestureRecognizers,
+        gestureRecognizers: widget.gestureRecognizers,
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: (id) {
-          controller._attach(id);
-          controller._onViewCreated();
+          widget.controller._attach(id);
+          widget.controller._onViewCreated();
         },
       );
     }
