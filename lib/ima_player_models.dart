@@ -39,8 +39,10 @@ enum AdEventType {
   unknown;
 
   static AdEventType fromString(String? event) {
+    event = event?.replaceAll(' ', '_');
+
     for (final value in values) {
-      if (value.name == event || value.name == '${event}D') {
+      if (value.name == event || value.name == '${event}d') {
         return value;
       }
     }
@@ -111,6 +113,7 @@ class PlayerEvent with _$PlayerEvent {
     @Default(0.0) double volume,
     @Default(Size.zero) Size size,
     @Default(Duration.zero) Duration duration,
+    @Default(Duration.zero) Duration bufferedDuration,
   }) = _PlayerEvent;
 }
 

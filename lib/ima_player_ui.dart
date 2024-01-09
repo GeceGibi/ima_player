@@ -255,7 +255,6 @@ class ImaProgressBar extends StatefulWidget {
 
 class _ImaProgressBarState extends State<ImaProgressBar> {
   var position = Duration.zero;
-  var bufferedPosition = Duration.zero;
 
   @override
   void initState() {
@@ -273,7 +272,6 @@ class _ImaProgressBarState extends State<ImaProgressBar> {
         }
 
         position = await widget.controller.position;
-        bufferedPosition = await widget.controller.bufferedPosition;
 
         setState(() {});
       });
@@ -315,7 +313,8 @@ class _ImaProgressBarState extends State<ImaProgressBar> {
                       final positionPercent = position.inMilliseconds /
                           widget.controller.value.duration.inMilliseconds;
 
-                      final bufferPercent = bufferedPosition.inMilliseconds /
+                      final bufferPercent = widget.controller.value
+                              .bufferedDuration.inMilliseconds /
                           widget.controller.value.duration.inMilliseconds;
 
                       return Stack(

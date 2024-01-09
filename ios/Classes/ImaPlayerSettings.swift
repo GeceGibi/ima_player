@@ -9,17 +9,16 @@ import Foundation
 
 
 struct ImaPlayerSettings {
-    var isMuted: Bool = false
+    var uri: URL!
+    var tag: String?
     var isMixed: Bool = false
     var autoPlay: Bool = true
-    var showPlaybackControls: Bool = true
-    
+    var initialVolume: Double = 1.0
+    var showPlaybackControls:Bool = true
+
     var isAdsEnabled: Bool {
         get {
-            return imaTag != nil && !imaTag!.isEmpty
+            return tag != nil && !tag!.isEmpty
         }
     }
-    
-    var imaTag: String?
-    var videoUrl: String?
 }

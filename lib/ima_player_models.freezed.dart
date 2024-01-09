@@ -529,6 +529,7 @@ mixin _$PlayerEvent {
   double get volume => throw _privateConstructorUsedError;
   Size get size => throw _privateConstructorUsedError;
   Duration get duration => throw _privateConstructorUsedError;
+  Duration get bufferedDuration => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $PlayerEventCopyWith<PlayerEvent> get copyWith =>
@@ -549,7 +550,8 @@ abstract class $PlayerEventCopyWith<$Res> {
       bool isEnded,
       double volume,
       Size size,
-      Duration duration});
+      Duration duration,
+      Duration bufferedDuration});
 }
 
 /// @nodoc
@@ -573,6 +575,7 @@ class _$PlayerEventCopyWithImpl<$Res, $Val extends PlayerEvent>
     Object? volume = null,
     Object? size = null,
     Object? duration = null,
+    Object? bufferedDuration = null,
   }) {
     return _then(_value.copyWith(
       isBuffering: null == isBuffering
@@ -607,6 +610,10 @@ class _$PlayerEventCopyWithImpl<$Res, $Val extends PlayerEvent>
           ? _value.duration
           : duration // ignore: cast_nullable_to_non_nullable
               as Duration,
+      bufferedDuration: null == bufferedDuration
+          ? _value.bufferedDuration
+          : bufferedDuration // ignore: cast_nullable_to_non_nullable
+              as Duration,
     ) as $Val);
   }
 }
@@ -627,7 +634,8 @@ abstract class _$$PlayerEventImplCopyWith<$Res>
       bool isEnded,
       double volume,
       Size size,
-      Duration duration});
+      Duration duration,
+      Duration bufferedDuration});
 }
 
 /// @nodoc
@@ -649,6 +657,7 @@ class __$$PlayerEventImplCopyWithImpl<$Res>
     Object? volume = null,
     Object? size = null,
     Object? duration = null,
+    Object? bufferedDuration = null,
   }) {
     return _then(_$PlayerEventImpl(
       isBuffering: null == isBuffering
@@ -683,6 +692,10 @@ class __$$PlayerEventImplCopyWithImpl<$Res>
           ? _value.duration
           : duration // ignore: cast_nullable_to_non_nullable
               as Duration,
+      bufferedDuration: null == bufferedDuration
+          ? _value.bufferedDuration
+          : bufferedDuration // ignore: cast_nullable_to_non_nullable
+              as Duration,
     ));
   }
 }
@@ -698,7 +711,8 @@ class _$PlayerEventImpl implements _PlayerEvent {
       this.isEnded = false,
       this.volume = 0.0,
       this.size = Size.zero,
-      this.duration = Duration.zero});
+      this.duration = Duration.zero,
+      this.bufferedDuration = Duration.zero});
 
   @override
   @JsonKey()
@@ -724,10 +738,13 @@ class _$PlayerEventImpl implements _PlayerEvent {
   @override
   @JsonKey()
   final Duration duration;
+  @override
+  @JsonKey()
+  final Duration bufferedDuration;
 
   @override
   String toString() {
-    return 'PlayerEvent(isBuffering: $isBuffering, isPlaying: $isPlaying, isPlayingAd: $isPlayingAd, isReady: $isReady, isEnded: $isEnded, volume: $volume, size: $size, duration: $duration)';
+    return 'PlayerEvent(isBuffering: $isBuffering, isPlaying: $isPlaying, isPlayingAd: $isPlayingAd, isReady: $isReady, isEnded: $isEnded, volume: $volume, size: $size, duration: $duration, bufferedDuration: $bufferedDuration)';
   }
 
   @override
@@ -746,12 +763,14 @@ class _$PlayerEventImpl implements _PlayerEvent {
             (identical(other.volume, volume) || other.volume == volume) &&
             (identical(other.size, size) || other.size == size) &&
             (identical(other.duration, duration) ||
-                other.duration == duration));
+                other.duration == duration) &&
+            (identical(other.bufferedDuration, bufferedDuration) ||
+                other.bufferedDuration == bufferedDuration));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, isBuffering, isPlaying,
-      isPlayingAd, isReady, isEnded, volume, size, duration);
+      isPlayingAd, isReady, isEnded, volume, size, duration, bufferedDuration);
 
   @JsonKey(ignore: true)
   @override
@@ -769,7 +788,8 @@ abstract class _PlayerEvent implements PlayerEvent {
       final bool isEnded,
       final double volume,
       final Size size,
-      final Duration duration}) = _$PlayerEventImpl;
+      final Duration duration,
+      final Duration bufferedDuration}) = _$PlayerEventImpl;
 
   @override
   bool get isBuffering;
@@ -787,6 +807,8 @@ abstract class _PlayerEvent implements PlayerEvent {
   Size get size;
   @override
   Duration get duration;
+  @override
+  Duration get bufferedDuration;
   @override
   @JsonKey(ignore: true)
   _$$PlayerEventImplCopyWith<_$PlayerEventImpl> get copyWith =>

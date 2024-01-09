@@ -7,13 +7,23 @@ typedef ViewCreatedCallback = void Function();
 final _kControllerInstances = <ImaPlayerController>[];
 
 class ImaPlayerController extends ValueNotifier<PlayerEvent> {
-  ImaPlayerController(
+  ImaPlayerController.network(
     this.uri, {
     this.imaTag,
     this.headers = const {},
     this.options = const ImaPlayerOptions(),
     this.adsLoaderSettings = const ImaAdsLoaderSettings(),
   }) : super(PlayerEvent(volume: options.initialVolume));
+
+  // todo: not supported currently
+  ImaPlayerController.asset(
+    String asset, {
+    this.imaTag,
+    this.options = const ImaPlayerOptions(),
+    this.adsLoaderSettings = const ImaAdsLoaderSettings(),
+  })  : uri = 'asset://$asset',
+        headers = const {},
+        super(PlayerEvent(volume: options.initialVolume));
 
   final String uri;
   final String? imaTag;
@@ -67,6 +77,11 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
         case "ended":
           value = value.copyWith(isEnded: true, isPlaying: false);
 
+        case "buffered_duration":
+          value = value.copyWith(
+            bufferedDuration: Duration(milliseconds: event["duration"]),
+          );
+
         case "duration":
           value = value.copyWith(
             duration: Duration(milliseconds: event["value"]),
@@ -82,7 +97,7 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
           value = value.copyWith(isBuffering: false);
 
         case "size_changed":
-          final size = List<int>.from(event["size"]).map(
+          final size = List<num>.from(event["size"]).map(
             (e) => e.toDouble(),
           );
 
@@ -102,7 +117,10 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
                   AdEventType.resumed) {
             _isPlayingAd = true;
           } else if (adEvent
-              case AdEventType.content_resume_requested || AdEventType.paused) {
+              case AdEventType.content_resume_requested ||
+                  AdEventType.paused ||
+                  AdEventType.completed ||
+                  AdEventType.all_ads_completed) {
             _isPlayingAd = false;
           }
 
@@ -127,12 +145,6 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
           }
         }
       });
-  }
-
-  Future<void> _onViewCreated() async {
-    if (_isDisposed) return;
-
-    await _methodChannel?.invokeMethod('view_created');
   }
 
   void pauseOtherPlayers() {
@@ -179,19 +191,18 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
     return Duration(milliseconds: dur ?? 0);
   }
 
-  Future<Duration> get bufferedPosition async {
-    if (_isDisposed) return Duration.zero;
-    final dur = await _methodChannel?.invokeMethod<int>('buffered_position');
-    return Duration(milliseconds: dur ?? 0);
-  }
-
   Future<void> seekTo(Duration duration) async {
     if (_isDisposed) return;
+
     await _methodChannel?.invokeMethod<bool>(
         'seek_to',
         Platform.isAndroid
             ? duration.inMilliseconds
             : duration.inMilliseconds / 1000);
+
+    if (Platform.isIOS && value.isEnded) {
+      play();
+    }
   }
 
   Future<void> skipAd() async {

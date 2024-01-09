@@ -35,10 +35,7 @@ class _ImaPlayerViewState extends State<_ImaPlayerView> {
         creationParams: creationParams,
         layoutDirection: TextDirection.ltr,
         creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: (id) {
-          widget.controller._attach(id);
-          widget.controller._onViewCreated();
-        },
+        onPlatformViewCreated: widget.controller._attach,
       );
     } else {
       return UiKitView(
@@ -47,10 +44,7 @@ class _ImaPlayerViewState extends State<_ImaPlayerView> {
         hitTestBehavior: PlatformViewHitTestBehavior.opaque,
         gestureRecognizers: widget.gestureRecognizers,
         creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: (id) {
-          widget.controller._attach(id);
-          widget.controller._onViewCreated();
-        },
+        onPlatformViewCreated: widget.controller._attach,
       );
     }
   }
