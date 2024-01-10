@@ -13,10 +13,10 @@ and the Flutter guide for
 
 
 # Flutter Ima Player Plugin
-Ima Player for Android & iOS. <br/>
-Used ExoPlayer SDK for Android and AVPlayer for iOS.
+IMA supported player for Flutter <br />
+Used ExoPlayer for Android and AVPlayer for iOS.
 
- <img src="https://github.com/GeceGibi/ima_player/blob/main/preview.gif?raw=true" alt="iOS Preview" height="500px">
+<img src="https://github.com/GeceGibi/ima_player/blob/main/preview.gif?raw=true" alt="preview" height="500px">
 
 ## ImaPlayer
 | Argument                        | Type                                              | Required | Default |
@@ -65,14 +65,14 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 ```
 
 ## ImaPlayerOptions
-| Argument                        | Type  | Description                                 | Required | Default   |
-| ------------------------------- |------ | ------------------------------------------- | -------- | --------- |
-| muted                           | bool  |                                             | NO       | false     |
-| autoPlay                        | bool  |                                             | NO       | true      |
-| isMixWithOtherMedia             | bool  |                                             | NO       | true      |
-| allowBackgroundPlayback         | bool  | Continue playing when app goes background   | NO       | false     |
-| showPlaybackControls            | bool  | Use native playback controllers             | NO       | false     |
-| initialVolume                   | double| initial volume, valid range 0.0 between 1.0 | NO       | 1.0       |
+| Argument                        | Type  | Description                                  | Required | Default   |
+| ------------------------------- |------ | -------------------------------------------- | -------- | --------- |
+| muted                           | bool  |                                              | NO       | false     |
+| autoPlay                        | bool  |                                              | NO       | true      |
+| isMixWithOtherMedia             | bool  |                                              | NO       | true      |
+| allowBackgroundPlayback         | bool  | Continue playing when app goes background    | NO       | false     |
+| showPlaybackControls            | bool  | Use native playback controllers              | NO       | false     |
+| initialVolume                   | double| initial volume, valid ranges 0.0 between 1.0 | NO       | 1.0       |
 
 
 ```dart
@@ -97,7 +97,6 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
         )
     );
 
-    /// With Ima Player Ui
     AspectRatio(
         aspectRatio: 16 / 9,
         child: ImaPlayer(controller)
@@ -106,8 +105,5 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 
 
 ## Known issues
-* add support for assets with `ImaPlayerController.asset` 
-
-
 * `controller.skipAd` not working currently.
-[explanation about skip button](https://developers.google.com/interactive-media-ads/docs/sdks/android/client-side/api/reference/com/google/ads/interactivemedia/v3/api/AdsManager.html#skip())
+[explanation about .skipAd()](https://developers.google.com/interactive-media-ads/docs/sdks/android/client-side/api/reference/com/google/ads/interactivemedia/v3/api/AdsManager.html#skip())
