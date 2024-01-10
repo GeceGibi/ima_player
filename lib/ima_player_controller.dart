@@ -15,15 +15,15 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
     this.adsLoaderSettings = const ImaAdsLoaderSettings(),
   }) : super(PlayerEvent(volume: options.initialVolume));
 
-  // todo: not supported currently
-  ImaPlayerController.asset(
-    String asset, {
-    this.imaTag,
-    this.options = const ImaPlayerOptions(),
-    this.adsLoaderSettings = const ImaAdsLoaderSettings(),
-  })  : uri = 'asset://$asset',
-        headers = const {},
-        super(PlayerEvent(volume: options.initialVolume));
+  // todo: add asset support
+  // ImaPlayerController.asset(
+  //   String asset, {
+  //   this.imaTag,
+  //   this.options = const ImaPlayerOptions(),
+  //   this.adsLoaderSettings = const ImaAdsLoaderSettings(),
+  // })  : uri = 'asset://$asset',
+  //       headers = const {},
+  //       super(PlayerEvent(volume: options.initialVolume));
 
   final String uri;
   final String? imaTag;
