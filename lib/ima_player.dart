@@ -40,7 +40,7 @@ class ImaPlayer extends StatefulWidget {
   const ImaPlayer(
     this.controller, {
     this.gestureRecognizers = const {},
-    this.autoDisposeController = true,
+    this.autoDisposeController = false,
     super.key,
   });
 

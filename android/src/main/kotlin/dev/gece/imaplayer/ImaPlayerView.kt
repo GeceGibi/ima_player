@@ -1,8 +1,13 @@
-@file:OptIn(UnstableApi::class) package dev.gece.imaplayer
+@file:OptIn(UnstableApi::class)
+
+package dev.gece.imaplayer
 
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.View
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
@@ -32,6 +37,8 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
+import java.util.Timer
+import java.util.TimerTask
 
 
 @RequiresApi(Build.VERSION_CODES.N)
@@ -64,6 +71,7 @@ internal class ImaPlayerView(
 
     private val userAgent = "User-Agent"
     private val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun getView(): View {
         return playerView
@@ -79,7 +87,6 @@ internal class ImaPlayerView(
         playerView.setControllerHideDuringAds(true)
 
         if (!imaPlayerSettings.showPlaybackControls) {
-
             playerView.controllerAutoShow = false
             playerView.useController = imaPlayerSettings.showPlaybackControls
         }
@@ -93,25 +100,9 @@ internal class ImaPlayerView(
             .setDataSourceFactory(dataSourceFactory)
             .setLocalAdInsertionComponents({ _ -> adsLoader }, playerView)
 
-        val mediaItem = generateMediaItem(imaPlayerSettings.uri)
-
-        exoPlayer.playWhenReady = imaPlayerSettings.autoPlay;
         exoPlayer.volume = imaPlayerSettings.initialVolume.toFloat()
 
-        exoPlayer.addMediaSource(mediaSourceWithAdFactory.createMediaSource(mediaItem))
-        exoPlayer.prepare();
-
         exoPlayer.addListener(object : Player.Listener {
-            private var isBuffering = false
-
-            fun sendBufferEvent(buffering: Boolean) {
-                if (isBuffering != buffering) {
-                    isBuffering = buffering
-                    val event = HashMap<String, Any>()
-                    event["type"] = if (isBuffering) "buffering_start" else "buffering_end"
-                    sendEvent(event)
-                }
-            }
 
             override fun onPlayerError(error: PlaybackException) {
                 super.onPlayerError(error)
@@ -139,22 +130,12 @@ internal class ImaPlayerView(
                 sendEvent(event)
             }
 
-
             override fun onPlaybackStateChanged(playbackState: Int) {
                 super.onPlaybackStateChanged(playbackState)
 
-                if (playbackState == Player.STATE_ENDED) {
-                    playerView.useController = false
-                    playerView.hideController()
-                }
-
                 when (playbackState) {
                     Player.STATE_BUFFERING -> {
-                        sendBufferEvent(true)
-                        val event = HashMap<String, Any>()
-                        event["type"] = "buffered_duration"
-                        event["duration"] = exoPlayer.totalBufferedDuration
-                        sendEvent(event)
+
                     }
 
                     Player.STATE_ENDED -> {
@@ -165,19 +146,17 @@ internal class ImaPlayerView(
 
                     Player.STATE_READY -> {
                         sendContentDuration(exoPlayer.duration)
-
                         val event = HashMap<String, Any>()
                         event["type"] = "ready"
                         sendEvent(event)
+
+                        mainHandler.removeCallbacks(bufferTracker)
+                        mainHandler.post(bufferTracker)
                     }
 
                     Player.STATE_IDLE -> {
                         // no-op
                     }
-                }
-
-                if (playbackState != Player.STATE_BUFFERING) {
-                    sendBufferEvent(false)
                 }
             }
 
@@ -188,6 +167,45 @@ internal class ImaPlayerView(
                 sendEvent(event)
             }
         })
+
+        val mediaItem = generateMediaItem(imaPlayerSettings.uri)
+        exoPlayer.addMediaSource(mediaSourceWithAdFactory.createMediaSource(mediaItem))
+        exoPlayer.prepare();
+        exoPlayer.playWhenReady = imaPlayerSettings.autoPlay;
+    }
+
+    var bufferTracker = object : Runnable {
+        private var latestBufferedPosition: Long = 0L
+        private var isBuffering = false
+
+        fun sendBufferEvent(buffering: Boolean) {
+            if (isBuffering != buffering) {
+                isBuffering = buffering
+                sendEvent(
+                    hashMapOf(
+                        "type" to if (isBuffering) "buffering_start" else "buffering_end"
+                    )
+                )
+            }
+        }
+
+        override fun run() {
+            val hasBuffering = latestBufferedPosition != exoPlayer.bufferedPosition
+
+            if (hasBuffering) {
+                latestBufferedPosition = exoPlayer.bufferedPosition;
+
+                sendEvent(
+                    hashMapOf(
+                        "type" to "buffered_duration",
+                        "duration" to latestBufferedPosition,
+                    )
+                )
+            }
+
+            sendBufferEvent(hasBuffering)
+            mainHandler.postDelayed(this, 250)
+        }
     }
 
     private fun setAudioAttributes() {
@@ -230,7 +248,6 @@ internal class ImaPlayerView(
                 "set_volume" -> setVolume(call.arguments as Double?, result)
                 "skip_ad" -> skipAd(result)
                 "current_position" -> getCurrentPosition(result)
-                "buffered_position" -> getBufferedPosition(result)
                 "view_created" -> result.success(null)
                 "dispose" -> result.success(null)
                 else -> result.notImplemented()
@@ -285,14 +302,6 @@ internal class ImaPlayerView(
         }
     }
 
-    private fun getBufferedPosition(result: MethodChannel.Result) {
-        try {
-            result.success(exoPlayer.bufferedPosition)
-        } catch (e: Exception) {
-            result.error("player_error", e.message, null)
-        }
-    }
-
     private fun setVolume(value: Double?, result: MethodChannel.Result) {
         if (value != null) {
             exoPlayer.volume = value.toFloat()
@@ -320,10 +329,7 @@ internal class ImaPlayerView(
 
     private var adEvent: AdEvent.AdEventType? = null;
     override fun onAdEvent(event: AdEvent) {
-        if (adEvent == event.type) {
-            return
-        }
-
+        if (adEvent == event.type) return
         adEvent = event.type;
 
         when (adEvent) {
@@ -373,6 +379,8 @@ internal class ImaPlayerView(
     }
 
     override fun dispose() {
+        mainHandler.removeCallbacks(bufferTracker)
+
         exoPlayer.release()
 
         playerView.removeAllViews()

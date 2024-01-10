@@ -252,10 +252,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     func adsManagerDidRequestContentResume(_ adsManager: IMAAdsManager) {
         sendEvent(event: ["type": "ad_event", "value": "content_resume_requested"])
         isShowingContent = true
-        
-        if imaPlayerSettings.autoPlay {
-            avPlayer.play()
-        }
+        avPlayer.play()
     }
     
     func requestAds() {
@@ -402,7 +399,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         imaAdsManager?.destroy()
         imaAdsManager = nil
         
-        avPlayer.replaceCurrentItem(with: nil)
+        avPlayer = nil
         avPlayerViewController.player = nil
         avPlayerViewController.removeFromParent()
         
@@ -410,7 +407,6 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         eventChannel = nil
         eventSink = nil
 
-        avPlayer = nil
         NotificationCenter.default.removeObserver(self)
         
         result(nil)
