@@ -15,15 +15,14 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
     this.adsLoaderSettings = const ImaAdsLoaderSettings(),
   }) : super(PlayerEvent(volume: options.initialVolume));
 
-  // todo: add asset support
-  // ImaPlayerController.asset(
-  //   String asset, {
-  //   this.imaTag,
-  //   this.options = const ImaPlayerOptions(),
-  //   this.adsLoaderSettings = const ImaAdsLoaderSettings(),
-  // })  : uri = 'asset://$asset',
-  //       headers = const {},
-  //       super(PlayerEvent(volume: options.initialVolume));
+  ImaPlayerController.asset(
+    String asset, {
+    this.imaTag,
+    this.options = const ImaPlayerOptions(),
+    this.adsLoaderSettings = const ImaAdsLoaderSettings(),
+  })  : uri = 'asset://$asset',
+        headers = const {},
+        super(PlayerEvent(volume: options.initialVolume));
 
   final String uri;
   final String? imaTag;
@@ -147,6 +146,7 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
       });
   }
 
+  /// Pauses all ima players but excluded this one
   void pauseOtherPlayers() {
     if (_isDisposed) return;
 
@@ -157,6 +157,7 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
     }
   }
 
+  /// Pauses all ima players currently playing
   static void pauseAllPlayers() {
     for (final instance in _kControllerInstances) {
       if (instance.value.isPlaying) {
@@ -165,6 +166,8 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
     }
   }
 
+  /// Play or resume video content or ads <br />
+  /// If want to play new video with same player just pass `uri`
   Future<void> play({String? uri}) async {
     if (_isDisposed) return;
 
@@ -175,11 +178,13 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
     }
   }
 
+  /// Pause video content or ads
   Future<void> pause() async {
     if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('pause');
   }
 
+  /// Just work on video content
   Future<void> stop() async {
     if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('stop');
@@ -191,6 +196,7 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
     return Duration(milliseconds: dur ?? 0);
   }
 
+  /// Seek to specific position
   Future<void> seekTo(Duration duration) async {
     if (_isDisposed) return;
 
@@ -205,6 +211,8 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
     }
   }
 
+  /// Skips the current ad. AdsManager.skip() only skips ads if IMA does not render the 'Skip ad' button. <br />
+  /// [Google Document](https://developers.google.com/interactive-media-ads/docs/sdks/android/client-side/api/reference/com/google/ads/interactivemedia/v3/api/AdsManager.html#skip())
   Future<void> skipAd() async {
     if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('skip_ad');

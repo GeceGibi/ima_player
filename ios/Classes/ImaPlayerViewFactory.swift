@@ -11,10 +11,10 @@ import Flutter
 import UIKit
 
 class ImaPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
-    private var messenger: FlutterBinaryMessenger
+    private var registrar: FlutterPluginRegistrar
 
-    init(messenger: FlutterBinaryMessenger) {
-        self.messenger = messenger
+    init(registrar: FlutterPluginRegistrar) {
+        self.registrar = registrar;
         super.init()
     }
     
@@ -38,9 +38,10 @@ class ImaPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
         imaSdkSettings.enableBackgroundPlayback = true
         
         var imaPlayerSettings = ImaPlayerSettings()
+        let uri = payload["uri"] as! String;
         
         imaPlayerSettings.tag = payload["ima_tag"] as? String
-        imaPlayerSettings.uri = URL(string: payload["uri"] as! String)
+        imaPlayerSettings.uri = URL(string: uri)
         imaPlayerSettings.autoPlay = payload["auto_play"] as! Bool
         imaPlayerSettings.initialVolume = payload["initial_volume"] as! Double
         imaPlayerSettings.isMixed = payload["is_mixed"] as! Bool
@@ -52,11 +53,17 @@ class ImaPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
             headers = payload["headers"] as! Dictionary<String, String>
         }
         
+        if uri.starts(with: "asset://") {
+            let assetKey = registrar.lookupKey(forAsset: String(uri.dropFirst(8)))
+            let assetPath = Bundle.main.path(forResource: assetKey, ofType: nil)!
+            imaPlayerSettings.uri = URL(string: assetPath, relativeTo: Bundle.main.bundleURL)
+        }
+        
         return ImaPlayerView(
             frame: frame,
             viewIdentifier: viewId,
             arguments: args as! Dictionary<String, Any>,
-            binaryMessenger: messenger,
+            binaryMessenger: registrar.messenger(),
             imaSdkSettings: imaSdkSettings,
             imaPlayerSettings: imaPlayerSettings,
             headers: headers
