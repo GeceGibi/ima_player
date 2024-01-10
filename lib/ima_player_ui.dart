@@ -130,14 +130,21 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
     controller.seekTo(nextPosition);
   }
 
+  var _initialWatcherAddedAfterAds = false;
+
   @override
   void initState() {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      watchUi();
-
       controller.addListener(() {
+        if (controller.value.isReady &&
+            controller.value.isPlaying &&
+            !_initialWatcherAddedAfterAds) {
+          _initialWatcherAddedAfterAds = true;
+          watchUi();
+        }
+
         if (controller.value.isEnded) {
           showUi();
         }
