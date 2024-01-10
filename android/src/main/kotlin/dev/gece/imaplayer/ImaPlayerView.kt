@@ -163,7 +163,7 @@ internal class ImaPlayerView(
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 super.onIsPlayingChanged(isPlaying)
                 val event = HashMap<String, Any>()
-                event["type"] = if (isPlaying) "playing" else "paused"
+                event["type"] = if (isPlaying && !exoPlayer.isPlayingAd) "playing" else "paused"
                 sendEvent(event)
             }
         })
