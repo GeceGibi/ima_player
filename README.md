@@ -107,4 +107,7 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 
 ## Known issues
 * add support for assets with `ImaPlayerController.asset` 
+
+
 * `controller.skipAd` not working currently.
+[explanation about skip button](https://developers.google.com/interactive-media-ads/docs/sdks/android/client-side/api/reference/com/google/ads/interactivemedia/v3/api/AdsManager.html#skip())

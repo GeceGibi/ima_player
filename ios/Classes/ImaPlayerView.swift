@@ -203,6 +203,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     
     // MARK: - IMAAdsManagerDelegate
     func adsManager(_ adsManager: IMAAdsManager, didReceive event: IMAAdEvent) {
+  
         var data = Dictionary<String, Any>()
         data["type"] = "ad_event"
         data["value"] = event.typeString.lowercased()
