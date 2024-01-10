@@ -165,10 +165,10 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
     }
   }
 
-  Future<void> play({String? videoUrl}) async {
+  Future<void> play({String? uri}) async {
     if (_isDisposed) return;
 
-    await _methodChannel?.invokeMethod<bool>('play', videoUrl);
+    await _methodChannel?.invokeMethod<bool>('play', uri);
 
     if (!options.isMixWithOtherMedia) {
       pauseOtherPlayers();

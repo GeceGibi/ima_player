@@ -34,17 +34,19 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 
 
 ## ImaPlayer
-| Argument                        | Type                                              | Required |
-| ------------------------------- |-------------------------------------------------  | -------- |
-| controller                      | `ImaPlayerController`                             | YES      |
-| gestureRecognizer               | `Set<Factory<OneSequenceGestureRecognizer>>`      | NO       |
+| Argument                        | Type                                              | Required | Default |
+| ------------------------------- |-------------------------------------------------  | -------- | ------- |
+| controller                      | `ImaPlayerController`                             | YES      | -       |
+| gestureRecognizer               | `Set<Factory<OneSequenceGestureRecognizer>>`      | NO       | -       |
+| autoDisposeController           | bool                                              | NO       | false   |
 
 
 ## ImaPlayerController - Constructor Arguments
 | Argument                        | Type                                              | Required | Default                   |
 | ------------------------------- |-------------------------------------------------  | -------- | ------------------------- |
-| videoUrl                        | String                                            | YES      | -                         |
+| uri                             | String                                            | YES      | -                         |
 | imaTag                          | String?                                           | NO       | -                         |
+| headers                         | Map<String, String>                               | NO       | <String, String>{}        |
 | options                         | `ImaPlayerOptions`                                | NO       | `ImaPlayerOptions()`      |
 | adsLoaderSettings               | `ImaAdsLoaderSettings`                            | NO       | `ImaAdsLoaderSettings()`  |
 
@@ -52,7 +54,6 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 ## ImaAdsLoaderSettings - Constructor Arguments
 | Argument                        | Type                                              | Required | Default               |
 | ------------------------------- |-------------------------------------------------  | -------- | --------------------- |
-| autoPlayAdBreaks                | bool                                              | NO       | true                  |
 | enableDebugMode                 | bool                                              | NO       | false                 |
 | language                        | String                                            | NO       | "en"
 | ppid                            | String?                                           | NO       | -
@@ -61,51 +62,63 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 ## ImaPlayerController - Instance members
 ```dart
     /// Methods
-    controller.play({String? videoUrl}) -> Future<bool>;
-    controller.pause() -> Future<bool>;
-    controller.stop() -> Future<bool>
-    controller.getVideoInfo() -> Future<ImaVideoInfo>
-    controller.getAdInfo() -> Future<ImaAdInfo>
-    controller.seekTo(Duration) -> Future<bool>
-    controller.skipAd() -> Future<bool>
-    controller.setVolume(double volume) -> Future<bool>
+    controller.play({String? uri}) -> Future<void>;
+    controller.pause() -> Future<void>;
+    controller.stop() -> Future<void>
+    controller.seekTo(Duration) -> Future<void>
+    controller.skipAd() -> Future<void>
+    controller.setVolume(double volume) -> Future<void>
+    controller.position -> Future<Duration>
 
     /// Observables
-    controller.onAdsEvent -> Stream<ImaAdsEvents>
-    controller.onPlayerEvent -> Stream<ImaPlayerEvents>
+    controller.onAdEvent -> Stream<AdEventType>
+    controller.onAdLoaded -> Stream<AdInfo>
+    controller.onPlayerReady -> Future<bool>
 
-    /// Variables
-    controller.videoUrl -> String;
-    controller.imaTag -> String?;
-    controller.options -> ImaPlayerOptions;
+    /// Static Properties
+    ImaPlayerController.pauseAllPlayers()
 ```
 
 ## ImaPlayerOptions
-| Argument                        | Type  | Description                               | Required | Default   |
-| ------------------------------- |------ | ----------------------------------------- | -------- | --------- |
-| muted                           | bool  |                                           | NO       | false     |
-| autoPlay                        | bool  |                                           | NO       | true      |
-| isMixWithOtherMedia             | bool  |                                           | NO       | true      |
-| allowBackgroundPlayback         | bool  | Continue playing when app goes background | NO       | false     |
-| showPlaybackControls            | bool  |                                           | NO       | true      |
-| controllerAutoShow              | bool  | Just for android                          | NO       | true      |
-| controllerHideOnTouch           | bool  | Just for android                          | NO       | true      |
-
+| Argument                        | Type  | Description                                 | Required | Default   |
+| ------------------------------- |------ | ------------------------------------------- | -------- | --------- |
+| muted                           | bool  |                                             | NO       | false     |
+| autoPlay                        | bool  |                                             | NO       | true      |
+| isMixWithOtherMedia             | bool  |                                             | NO       | true      |
+| allowBackgroundPlayback         | bool  | Continue playing when app goes background   | NO       | false     |
+| showPlaybackControls            | bool  | Use native playback controllers             | NO       | false     |
+| initialVolume                   | double| initial volume, valid range 0.0 between 1.0 | NO       | 1.0       |
 
 
 ```dart
-    final controller = ImaPlayerController(
-        videoUrl: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+    final controller = ImaPlayerController.network(
+        'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
         imaTag: 'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
-        options: const ImaPlayerOptions(
-            autoPlay: false
-        ),
     );
 
-    /// ...
-    AspectRatio(
-        aspectRatio: 16 / 9,
-        child: ImaPlayer(controller: controller),
+    /// With Ima Player Ui
+    ImaPlayerUi(
+        player: ImaPlayer(controller)
     ),
-    /// ...
 ```
+
+
+```dart
+    final controller = ImaPlayerController.network(
+        'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+        imaTag: 'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
+        options: ImaPlayerOptions(
+            showPlaybackControls: true, // if you want use native ui controls
+        )
+    );
+
+    /// With Ima Player Ui
+    AspectRatio(
+        aspectRatio: 16 /9,
+        child: ImaPlayer(controller)
+    )
+```
+
+
+## Known issues
+* add support for assets with `ImaPlayerController.asset` 
