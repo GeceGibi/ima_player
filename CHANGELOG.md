@@ -1,3 +1,6 @@
+## 2.0.1
+* Added asset support
+
 ## 2.0.0
 * Updated Android, iOS sides
 * Updated `ImaPlayerController()` and it's now listenable and extends with `ValueNotifier<PlayerEvent>`.
