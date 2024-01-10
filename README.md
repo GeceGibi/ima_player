@@ -122,3 +122,4 @@ Used ExoPlayer SDK for Android and AVPlayer for iOS.
 
 ## Known issues
 * add support for assets with `ImaPlayerController.asset` 
+* `controller.skipAd` not working currently.
