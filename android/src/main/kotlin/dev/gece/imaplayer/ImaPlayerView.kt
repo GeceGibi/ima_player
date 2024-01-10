@@ -162,9 +162,7 @@ internal class ImaPlayerView(
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 super.onIsPlayingChanged(isPlaying)
-                val event = HashMap<String, Any>()
-                event["type"] = if (isPlaying && !exoPlayer.isPlayingAd) "playing" else "paused"
-                sendEvent(event)
+                sendPlayState()
             }
         })
 
@@ -225,6 +223,11 @@ internal class ImaPlayerView(
         return builder.build();
     }
 
+    private fun sendPlayState() {
+        val event = HashMap<String, Any>()
+        event["type"] = if (exoPlayer.isPlaying && !exoPlayer.isPlayingAd) "playing" else "paused"
+        sendEvent(event)
+    }
 
     private fun buildHttpDataSourceFactory(httpHeaders: HashMap<String, String>) {
         val httpHeadersNotEmpty = httpHeaders.isNotEmpty()
@@ -359,6 +362,7 @@ internal class ImaPlayerView(
 
             AdEvent.AdEventType.CONTENT_RESUME_REQUESTED -> {
                 sendContentDuration(exoPlayer.duration)
+                sendPlayState()
             }
 
             else -> {}
