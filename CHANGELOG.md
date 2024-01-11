@@ -1,3 +1,6 @@
+## 2.0.2
+* Fixed known issues [commit](https://github.com/GeceGibi/ima_player/commit/bb5fc6a62a569200e7c0c9f2921460ec81a97728)
+
 ## 2.0.1
 * Added asset support
 
