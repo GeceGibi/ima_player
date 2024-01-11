@@ -34,6 +34,8 @@ class _ImaPlayerViewState extends State<_ImaPlayerView> {
         viewType: viewType,
         creationParams: creationParams,
         layoutDirection: TextDirection.ltr,
+        gestureRecognizers: widget.gestureRecognizers,
+        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: widget.controller._attach,
       );
@@ -41,8 +43,9 @@ class _ImaPlayerViewState extends State<_ImaPlayerView> {
       return UiKitView(
         viewType: viewType,
         creationParams: creationParams,
-        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        layoutDirection: TextDirection.ltr,
         gestureRecognizers: widget.gestureRecognizers,
+        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: widget.controller._attach,
       );

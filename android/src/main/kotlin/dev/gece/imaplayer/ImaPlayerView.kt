@@ -103,6 +103,18 @@ internal class ImaPlayerView(
         exoPlayer.volume = imaPlayerSettings.initialVolume.toFloat()
 
         exoPlayer.addListener(object : Player.Listener {
+            private var isBuffering = false
+
+            fun sendBufferEvent(buffering: Boolean) {
+                if (isBuffering != buffering) {
+                    isBuffering = buffering
+                    sendEvent(
+                        hashMapOf(
+                            "type" to if (isBuffering) "buffering_start" else "buffering_end"
+                        )
+                    )
+                }
+            }
 
             override fun onPlayerError(error: PlaybackException) {
                 super.onPlayerError(error)
@@ -135,7 +147,7 @@ internal class ImaPlayerView(
 
                 when (playbackState) {
                     Player.STATE_BUFFERING -> {
-
+                        sendBufferEvent(true)
                     }
 
                     Player.STATE_ENDED -> {
@@ -158,6 +170,10 @@ internal class ImaPlayerView(
                         // no-op
                     }
                 }
+
+                if (playbackState != Player.STATE_BUFFERING) {
+                    sendBufferEvent(false)
+                }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -174,18 +190,6 @@ internal class ImaPlayerView(
 
     var bufferTracker = object : Runnable {
         private var latestBufferedPosition: Long = 0L
-        private var isBuffering = false
-
-        fun sendBufferEvent(buffering: Boolean) {
-            if (isBuffering != buffering) {
-                isBuffering = buffering
-                sendEvent(
-                    hashMapOf(
-                        "type" to if (isBuffering) "buffering_start" else "buffering_end"
-                    )
-                )
-            }
-        }
 
         override fun run() {
             val hasBuffering = latestBufferedPosition != exoPlayer.bufferedPosition
@@ -201,7 +205,6 @@ internal class ImaPlayerView(
                 )
             }
 
-            sendBufferEvent(hasBuffering)
             mainHandler.postDelayed(this, 250)
         }
     }

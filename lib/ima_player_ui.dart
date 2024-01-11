@@ -182,7 +182,6 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
                     opacity: uiHidden ? 0.0 : 1,
                     duration: const Duration(milliseconds: 250),
                     child: Stack(
-                      fit: StackFit.expand,
                       children: [
                         const Positioned.fill(
                           child: ColoredBox(color: Color(0x66000000)),

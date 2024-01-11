@@ -147,20 +147,13 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
   }
 
   /// Pauses all ima players but excluded this one
-  void pauseOtherPlayers() {
-    if (_isDisposed) return;
-
+  static void pauseImaPlayers([ImaPlayerController? excludedOne]) {
     for (final instance in _kControllerInstances) {
-      if (instance != this) {
-        instance.pause();
-      }
-    }
-  }
+      if (!instance._isDisposed) {
+        if (excludedOne == instance) {
+          continue;
+        }
 
-  /// Pauses all ima players currently playing
-  static void pauseAllPlayers() {
-    for (final instance in _kControllerInstances) {
-      if (instance.value.isPlaying) {
         instance.pause();
       }
     }
@@ -170,12 +163,7 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
   /// If want to play new video with same player just pass `uri`
   Future<void> play({String? uri}) async {
     if (_isDisposed) return;
-
     await _methodChannel?.invokeMethod<bool>('play', uri);
-
-    if (!options.isMixWithOtherMedia) {
-      pauseOtherPlayers();
-    }
   }
 
   /// Pause video content or ads

@@ -55,13 +55,11 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  var position = Duration.zero;
-
-  var aspectRatio = 16 / 9;
+  var position = ValueNotifier(Duration.zero);
   var events = <AdEventType>[];
 
-  final controller = ImaPlayerController.network(
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+  final controller = ImaPlayerController.asset(
+    'assets/video.mp4',
     imaTag:
         'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_preroll_skippable&sz=640x480&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
     options: const ImaPlayerOptions(
@@ -99,26 +97,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
       setState(() {});
     });
 
-    controller.addListener(() {
-      setState(() {
-        if (controller.value.size.aspectRatio != 0) {
-          aspectRatio = controller.value.size.aspectRatio;
-        }
-      });
-    });
-
     Timer.periodic(const Duration(milliseconds: 200), (timer) async {
       if (!mounted) {
         timer.cancel();
         return;
       }
 
-      final pos = await controller.position;
-
-      setState(() {
-        position = pos;
-      });
+      position.value = await controller.position;
     });
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -131,7 +123,29 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ImaPlayerUI(
             player: ImaPlayer(controller),
           ),
-          Text(position.toString()),
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ImaPlayer(
+              ImaPlayerController.network(
+                'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+                imaTag:
+                    'https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_preroll_skippable&sz=640x480&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=',
+                options: const ImaPlayerOptions(
+                  autoPlay: true,
+                  initialVolume: 1.0,
+                  isMixWithOtherMedia: false,
+                  showPlaybackControls: true,
+                ),
+              ),
+              autoDisposeController: true,
+            ),
+          ),
+          ValueListenableBuilder(
+            valueListenable: position,
+            builder: (context, pos, child) {
+              return Text(pos.toString());
+            },
+          ),
           Text(controller.value.bufferedDuration.toString()),
           FilledButton(
             onPressed: controller.play,
@@ -155,7 +169,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             child: Text('PLAY ANOTHER VIDEO'),
           ),
           FilledButton(
-            onPressed: controller.pauseOtherPlayers,
+            onPressed: () => ImaPlayerController.pauseImaPlayers(controller),
             child: Text('PAUSE OTHER PLAYERS'),
           ),
           FilledButton(

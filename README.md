@@ -61,7 +61,7 @@ Used ExoPlayer for Android and AVPlayer for iOS.
     controller.onPlayerReady -> Future<bool>
 
     /// Static Properties
-    ImaPlayerController.pauseAllPlayers()
+    ImaPlayerController.pauseImaPlayers([ImaPlayerController? excludedOne])
 ```
 
 ## ImaPlayerOptions
