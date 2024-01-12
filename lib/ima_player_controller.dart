@@ -53,10 +53,10 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
   StreamSubscription? _eventListener;
 
   void _attach(int viewId) {
+    _kControllerInstances.add(this);
+
     _methodChannel = MethodChannel('gece.dev/imaplayer/$viewId');
     _eventChannel = EventChannel('gece.dev/imaplayer/$viewId/events');
-
-    _kControllerInstances.add(this);
 
     _eventListener = _eventChannel?.receiveBroadcastStream().listen((event) {
       switch (event["type"]) {
@@ -96,16 +96,15 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
           value = value.copyWith(isBuffering: false);
 
         case "size_changed":
-          final size = List<num>.from(event["size"]).map(
-            (e) => e.toDouble(),
-          );
-
+          final size = List<num>.from(event["size"]).map((e) => e.toDouble());
           value = value.copyWith(size: Size(size.first, size.last));
 
         case "ad_info":
-          _onAdLoadedStreamController.add(
-            AdInfo.fromJson(Map<String, dynamic>.from(event['info'])),
-          );
+          if (!_onAdLoadedStreamController.isClosed) {
+            _onAdLoadedStreamController.add(
+              AdInfo.fromJson(Map<String, dynamic>.from(event['info'])),
+            );
+          }
 
         case "ad_event":
           final adEvent = AdEventType.fromString(event["value"]);
@@ -123,7 +122,9 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
             _isPlayingAd = false;
           }
 
-          _adEventStreamController.add(adEvent);
+          if (!_adEventStreamController.isClosed) {
+            _adEventStreamController.add(adEvent);
+          }
 
           value = value.copyWith(isPlayingAd: _isPlayingAd);
       }
@@ -149,45 +150,40 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
   /// Pauses all ima players but excluded this one
   static void pauseImaPlayers([ImaPlayerController? excludedOne]) {
     for (final instance in _kControllerInstances) {
-      if (!instance._isDisposed) {
-        if (excludedOne == instance) {
-          continue;
-        }
-
-        instance.pause();
+      if (excludedOne == instance) {
+        continue;
       }
+
+      instance.pause();
     }
   }
 
   /// Play or resume video content or ads <br />
   /// If want to play new video with same player just pass `uri`
   Future<void> play({String? uri}) async {
-    if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('play', uri);
   }
 
   /// Pause video content or ads
   Future<void> pause() async {
-    if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('pause');
   }
 
   /// Just work on video content
   Future<void> stop() async {
-    if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('stop');
   }
 
   Future<Duration> get position async {
-    if (_isDisposed) return Duration.zero;
-    final dur = await _methodChannel?.invokeMethod<int>('current_position');
-    return Duration(milliseconds: dur ?? 0);
+    final duration = await _methodChannel?.invokeMethod<int>(
+      'current_position',
+    );
+
+    return Duration(milliseconds: duration ?? 0);
   }
 
   /// Seek to specific position
   Future<void> seekTo(Duration duration) async {
-    if (_isDisposed) return;
-
     await _methodChannel?.invokeMethod<bool>(
         'seek_to',
         Platform.isAndroid
@@ -202,23 +198,37 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
   /// Skips the current ad. AdsManager.skip() only skips ads if IMA does not render the 'Skip ad' button. <br />
   /// [Google Document](https://developers.google.com/interactive-media-ads/docs/sdks/android/client-side/api/reference/com/google/ads/interactivemedia/v3/api/AdsManager.html#skip())
   Future<void> skipAd() async {
-    if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('skip_ad');
   }
 
   Future<void> setVolume(double volume) async {
-    if (_isDisposed) return;
     await _methodChannel?.invokeMethod<bool>('set_volume', volume);
   }
 
-  @override
-  void dispose() {
-    _isDisposed = true;
+  /// only need for iOS
+  void _disposeView() {
+    _methodChannel?.invokeMethod('dispose');
+  }
+
+  void _disposeListeners() {
     _eventListener?.cancel();
     _kControllerInstances.remove(this);
     _onAdLoadedStreamController.close();
     _adEventStreamController.close();
-    _methodChannel?.invokeMethod('dispose');
+    _eventChannel = null;
+    _methodChannel = null;
+  }
+
+  @override
+  void dispose() {
+    if (_isDisposed) {
+      return;
+    }
+
+    _disposeView();
+    _disposeListeners();
+
+    _isDisposed = true;
     super.dispose();
   }
 }

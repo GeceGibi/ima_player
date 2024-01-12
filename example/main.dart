@@ -137,7 +137,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   showPlaybackControls: true,
                 ),
               ),
-              autoDisposeController: true,
             ),
           ),
           ValueListenableBuilder(

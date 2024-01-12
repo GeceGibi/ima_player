@@ -123,6 +123,9 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     override func observeValue(forKeyPath keyPath: String?,  of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if isDisposed {
+            return
+        }
         
         switch (keyPath) {
         case "status":
@@ -334,6 +337,10 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     private func getCurrentPosition(result: FlutterResult) {
+        if isDisposed {
+            return
+        }
+        
         if isShowingContent {
             result(timeToMillis(avPlayer.currentItem!.currentTime()))
         } else {
@@ -342,6 +349,10 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     private func seekTo(value: Double, result: FlutterResult) {
+        if isDisposed {
+            return
+        }
+        
         let time = CMTimeMakeWithSeconds(Float64(value), preferredTimescale: 1000)
         let canSeek = avPlayer.currentItem != nil && avPlayer.currentItem!.duration > time;
         
@@ -353,6 +364,10 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     private func play(videoUrl: String?, result: FlutterResult) {
+        if isDisposed {
+            return
+        }
+        
         if videoUrl != nil {
             imaPlayerSettings.uri = URL(string: videoUrl!)
             let playerItem = AVPlayerItem.init(url: URL(string: videoUrl!)!)
@@ -372,30 +387,50 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     private func pause(result: FlutterResult) {
+        if isDisposed {
+            return
+        }
+        
         avPlayer.pause()
         imaAdsManager?.pause()
         result(nil)
     }
     
-    private func stop(result: FlutterResult){
+    private func stop(result: FlutterResult) {
+        if isDisposed {
+            return
+        }
+        
         avPlayer.seek(to: .zero)
         avPlayer.pause()
         result(nil)
     }
     
     private func setVolume(value: Double, result: FlutterResult) {
+        if isDisposed {
+            return
+        }
+        
         avPlayer.volume = Float(value)
         imaAdsManager?.volume = Float(value)
         result(nil)
     }
     
     private func skipAd(result: FlutterResult){
+        if isDisposed {
+            return
+        }
+        
         imaAdsManager?.skip()
         result(nil)
     }
     
     private var eventQueue: [Dictionary<String, Any>] = []
     private func sendEvent(event: Dictionary<String, Any>) {
+        if isDisposed {
+            return
+        }
+        
         if eventSink == nil {
             eventQueue.append(event)
         } else {
@@ -422,8 +457,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     }
     
     func dispose(result: FlutterResult) {
-        isDisposed = true
-        
+
         if timer != nil && timer!.isValid {
             timer?.invalidate()
             timer = nil
@@ -431,7 +465,8 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
          
         imaAdsManager?.destroy()
         imaAdsManager = nil
-        
+    
+        avPlayer?.replaceCurrentItem(with: nil)
         avPlayer = nil
         avPlayerViewController.player = nil
         avPlayerViewController.removeFromParent()
@@ -442,6 +477,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
 
         NotificationCenter.default.removeObserver(self)
         
+        isDisposed = true
         result(nil)
     }
 }

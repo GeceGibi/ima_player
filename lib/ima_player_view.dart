@@ -1,32 +1,34 @@
 part of 'ima_player.dart';
 
-class _ImaPlayerView extends StatefulWidget {
+class _ImaPlayerView extends StatelessWidget {
   const _ImaPlayerView(
     this.controller, {
     required this.gestureRecognizers,
+    required this.onViewCreated,
   });
 
   final ImaPlayerController controller;
+  final void Function(int viewId) onViewCreated;
   final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
 
-  @override
-  State<_ImaPlayerView> createState() => _ImaPlayerViewState();
-}
+  void onPlatformViewCreatedHandler(int viewId) {
+    controller._attach(viewId);
+    onViewCreated(viewId);
+  }
 
-class _ImaPlayerViewState extends State<_ImaPlayerView> {
   @override
   Widget build(BuildContext context) {
     const viewType = 'gece.dev/imaplayer';
 
     final creationParams = {
-      'uri': widget.controller.uri,
-      'headers': widget.controller.headers,
-      'ima_tag': widget.controller.imaTag,
-      'is_mixed': widget.controller.options.isMixWithOtherMedia,
-      'auto_play': widget.controller.options.autoPlay,
-      'initial_volume': widget.controller.options.initialVolume,
-      'show_playback_controls': widget.controller.options.showPlaybackControls,
-      'ads_loader_settings': widget.controller.adsLoaderSettings.toJson(),
+      'uri': controller.uri,
+      'headers': controller.headers,
+      'ima_tag': controller.imaTag,
+      'is_mixed': controller.options.isMixWithOtherMedia,
+      'auto_play': controller.options.autoPlay,
+      'initial_volume': controller.options.initialVolume,
+      'show_playback_controls': controller.options.showPlaybackControls,
+      'ads_loader_settings': controller.adsLoaderSettings.toJson(),
     };
 
     if (Platform.isAndroid) {
@@ -34,20 +36,18 @@ class _ImaPlayerViewState extends State<_ImaPlayerView> {
         viewType: viewType,
         creationParams: creationParams,
         layoutDirection: TextDirection.ltr,
-        gestureRecognizers: widget.gestureRecognizers,
-        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        gestureRecognizers: gestureRecognizers,
         creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: widget.controller._attach,
+        onPlatformViewCreated: onPlatformViewCreatedHandler,
       );
     } else {
       return UiKitView(
         viewType: viewType,
         creationParams: creationParams,
         layoutDirection: TextDirection.ltr,
-        gestureRecognizers: widget.gestureRecognizers,
-        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+        gestureRecognizers: gestureRecognizers,
         creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: widget.controller._attach,
+        onPlatformViewCreated: onPlatformViewCreatedHandler,
       );
     }
   }

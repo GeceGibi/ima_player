@@ -40,11 +40,9 @@ class ImaPlayer extends StatefulWidget {
   const ImaPlayer(
     this.controller, {
     this.gestureRecognizers = const {},
-    this.autoDisposeController = false,
     super.key,
   });
 
-  final bool autoDisposeController;
   final ImaPlayerController controller;
   final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers;
 
@@ -52,13 +50,17 @@ class ImaPlayer extends StatefulWidget {
   State<ImaPlayer> createState() => _ImaPlayerState();
 }
 
-class _ImaPlayerState extends State<ImaPlayer>
-    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
+class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
   var itWasPlaying = false;
+  var viewId = -1;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+
+    if (widget.controller._isDisposed) {
+      return;
+    }
 
     if (!widget.controller.options.allowBackgroundPlayback) {
       switch (state) {
@@ -80,30 +82,35 @@ class _ImaPlayerState extends State<ImaPlayer>
   }
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
+  void didUpdateWidget(covariant ImaPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.controller != oldWidget.controller) {
+      widget.controller._attach(viewId);
+      widget.controller.value = oldWidget.controller.value;
+      oldWidget.controller._disposeListeners();
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    if (widget.autoDisposeController) {
-      widget.controller.dispose();
-    }
+    widget.controller._disposeView();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
+    if (widget.controller._isDisposed) {
+      throw "This controller is disposed.";
+    }
 
     return _ImaPlayerView(
       widget.controller,
       gestureRecognizers: widget.gestureRecognizers,
+      onViewCreated: (viewId) {
+        this.viewId = viewId;
+      },
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
 }
