@@ -8,6 +8,8 @@ import androidx.annotation.RequiresApi
 import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
 import io.flutter.FlutterInjector
 import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.StandardMessageCodec
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
@@ -18,6 +20,9 @@ class ImaPlayerViewFactory(private val messenger: BinaryMessenger) :
 
     @RequiresApi(Build.VERSION_CODES.N)
     override fun create(context: Context, id: Int, args: Any?): PlatformView {
+
+        var methodChannel = MethodChannel(messenger, "gece.dev/imaplayer/$id")
+        var eventChannel = EventChannel(messenger, "gece.dev/imaplayer/$id/events")
         val payload = args as Map<String, Any>;
 
         val adsLoaderSettings = payload["ads_loader_settings"] as HashMap<*, *>
@@ -54,7 +59,9 @@ class ImaPlayerViewFactory(private val messenger: BinaryMessenger) :
             messenger,
             imaSdkSettings,
             imaPlayerSettings,
-            headers
+            headers,
+            methodChannel,
+            eventChannel,
         )
     }
 }

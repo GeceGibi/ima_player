@@ -12,11 +12,13 @@ import UIKit
 import AVKit
 import MediaPlayer
 
-class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAdsManagerDelegate, IMAAdsLoaderDelegate {
-    enum Events: String {
-        case ads
-        case player
-    }
+class ImaPlayerView: NSObject, FlutterPlatformView, IMAAdsManagerDelegate, IMAAdsLoaderDelegate, FlutterStreamHandler {
+    private var viewId: Int64
+    private var eventSink: FlutterEventSink?
+    private var eventQueue: [Dictionary<String, Any>] = []
+    
+    private var methodChannel: FlutterMethodChannel
+    private var eventChannel: FlutterEventChannel
     
     private var imaPlayerSettings: ImaPlayerSettings!
     private var avPlayer: AVPlayer!
@@ -25,15 +27,10 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
     private var imaAdsManager: IMAAdsManager?
     private var avPlayerViewController = AVPlayerViewController()
     
-    private var methodChannel: FlutterMethodChannel!
-    private var eventChannel: FlutterEventChannel!
-    private var eventSink: FlutterEventSink!
-    
     private var isDisposed = false
     private var isShowingContent = true
     
     private var timer: Timer?
-
     
     func view() -> UIView {
         return avPlayerViewController.view
@@ -46,15 +43,18 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         binaryMessenger messenger: FlutterBinaryMessenger,
         imaSdkSettings: IMASettings,
         imaPlayerSettings: ImaPlayerSettings,
-        headers: Dictionary<String, String>
+        headers: Dictionary<String, String>,
+        methodChannel: FlutterMethodChannel,
+        eventChannel: FlutterEventChannel
     ) {
+        
+        self.viewId = viewId;
+        self.eventChannel = eventChannel
+        self.methodChannel = methodChannel
         self.imaPlayerSettings = imaPlayerSettings
         
         avPlayer = AVPlayer(url: imaPlayerSettings.uri)
         avPlayer.volume = Float(imaPlayerSettings.initialVolume)
-        
-        methodChannel = FlutterMethodChannel(name: "gece.dev/imaplayer/\(viewId)", binaryMessenger: messenger)
-        eventChannel = FlutterEventChannel(name: "gece.dev/imaplayer/\(viewId)/events", binaryMessenger: messenger)
         
         avPlayerViewController.player = avPlayer
         avPlayerViewController.view.frame = frame
@@ -68,10 +68,10 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         
         super.init()
         
-        setMixWithOther()
-        
+        eventChannel.setStreamHandler(self);
         methodChannel.setMethodCallHandler(onMethodCall)
-        eventChannel.setStreamHandler(self)
+        
+        setMixWithOther()
         
         addListenerForItem()
         addListenerForPlayer()
@@ -89,6 +89,45 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             
             timer.invalidate()
             self.requestAd()
+        }
+    }
+    
+    func onMethodCall(call: FlutterMethodCall, result: FlutterResult) {
+        switch(call.method){
+        case "play":
+            play(uri: call.arguments as! String?, result: result)
+            break;
+            
+        case "pause":
+            pause(result: result)
+            break;
+            
+        case "stop":
+            stop(result: result)
+            break;
+            
+        case "seek_to":
+            seekTo(value: call.arguments as! Double, result: result)
+            break;
+            
+        case "set_volume":
+            setVolume(value: call.arguments as! Double, result: result)
+            break;
+            
+        case "current_position":
+            getCurrentPosition(result: result)
+            break;
+            
+        case "dispose":
+            dispose(result: result)
+            break;
+            
+        case "skip_ad":
+            skipAd(result: result)
+            break;
+            
+        default:
+            result(FlutterMethodNotImplemented)
         }
     }
     
@@ -190,8 +229,13 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         }
     }
     
-    public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
-        eventSink = events
+    public func onListen(withArguments arguments: Any?, eventSink: @escaping FlutterEventSink) -> FlutterError? {
+        self.eventSink = eventSink
+        
+        while !eventQueue.isEmpty {
+            eventSink(eventQueue.removeFirst())
+        }
+        
         return nil
     }
     
@@ -295,56 +339,20 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             imaAdsLoader.requestAds(with: adsRequest)
         }
     }
-    
-    
-    func onMethodCall(call: FlutterMethodCall, result: FlutterResult) {
-        switch(call.method){
-        case "play":
-            play(videoUrl: call.arguments as! String?, result: result)
-            break;
-            
-        case "pause":
-            pause(result: result)
-            break;
-            
-        case "stop":
-            stop(result: result)
-            break;
-            
-        case "seek_to":
-            seekTo(value: call.arguments as! Double, result: result)
-            break;
-            
-        case "set_volume":
-            setVolume(value: call.arguments as! Double, result: result)
-            break;
-            
-        case "current_position":
-            getCurrentPosition(result: result)
-            break;
-            
-        case "dispose":
-            dispose(result: result)
-            break;
-            
-        case "skip_ad":
-            skipAd(result: result)
-            break;
-            
-        default:
-            result(FlutterMethodNotImplemented)
-        }
-    }
-    
+   
     private func getCurrentPosition(result: FlutterResult) {
         if isDisposed {
             return
         }
         
         if isShowingContent {
-            result(timeToMillis(avPlayer.currentItem!.currentTime()))
-        } else {
+            if avPlayer.currentItem != nil {
+                result(timeToMillis(avPlayer.currentItem!.currentTime()))
+            }
+        } else if imaAdsManager != nil {
             result(Int64(imaAdsManager!.adPlaybackInfo.currentMediaTime * 1000))
+        } else {
+            result(0)
         }
     }
     
@@ -363,17 +371,15 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         result(canSeek)
     }
     
-    private func play(videoUrl: String?, result: FlutterResult) {
+    private func play(uri: String?, result: FlutterResult) {
         if isDisposed {
             return
         }
         
-        if videoUrl != nil {
-            imaPlayerSettings.uri = URL(string: videoUrl!)
-            let playerItem = AVPlayerItem.init(url: URL(string: videoUrl!)!)
-            
+        if uri != nil {
+            imaPlayerSettings.uri = URL(string: uri!)
+            let playerItem = AVPlayerItem.init(url: URL(string: uri!)!)
             avPlayer.replaceCurrentItem(with: playerItem)
-           
             addListenerForItem()
         }
         
@@ -401,8 +407,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
             return
         }
         
-        avPlayer.seek(to: .zero)
-        avPlayer.pause()
+        avPlayer.replaceCurrentItem(with: nil)
         result(nil)
     }
     
@@ -416,7 +421,7 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         result(nil)
     }
     
-    private func skipAd(result: FlutterResult){
+    private func skipAd(result: FlutterResult) {
         if isDisposed {
             return
         }
@@ -425,21 +430,15 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         result(nil)
     }
     
-    private var eventQueue: [Dictionary<String, Any>] = []
     private func sendEvent(event: Dictionary<String, Any>) {
         if isDisposed {
             return
         }
-        
+    
         if eventSink == nil {
             eventQueue.append(event)
         } else {
-            while !eventQueue.isEmpty {
-                let ev = eventQueue.removeFirst()
-                eventSink(ev)
-            }
-            
-            eventSink(event)
+            eventSink!(event)
         }
     }
     
@@ -456,13 +455,12 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         return Int64(time.value) * 1000 / Int64(time.timescale)
     }
     
-    func dispose(result: FlutterResult) {
-
+    public func dispose(result: FlutterResult) {
         if timer != nil && timer!.isValid {
             timer?.invalidate()
             timer = nil
         }
-         
+
         imaAdsManager?.destroy()
         imaAdsManager = nil
     
@@ -470,11 +468,11 @@ class ImaPlayerView: NSObject, FlutterPlatformView, FlutterStreamHandler, IMAAds
         avPlayer = nil
         avPlayerViewController.player = nil
         avPlayerViewController.removeFromParent()
-        
-        methodChannel = nil
-        eventChannel = nil
-        eventSink = nil
 
+        eventSink = nil
+        eventChannel.setStreamHandler(nil)
+        methodChannel.setMethodCallHandler(nil)
+        
         NotificationCenter.default.removeObserver(self)
         
         isDisposed = true

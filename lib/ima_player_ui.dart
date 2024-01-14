@@ -1,11 +1,7 @@
 part of 'ima_player.dart';
 
 class ImaPlayerUI extends StatefulWidget {
-  const ImaPlayerUI({
-    super.key,
-    required this.player,
-  });
-
+  const ImaPlayerUI({super.key, required this.player});
   final ImaPlayer player;
 
   @override
@@ -95,6 +91,12 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
     watchUi();
   }
 
+  void seekToHandler(double position) async {
+    final duration = controller.value.duration * position;
+    watchUi();
+    controller.seekTo(duration);
+  }
+
   final backwardAndForwardStep = const Duration(seconds: 5);
   Future<void> forwardVideo() async {
     if (!controller.value.isReady || !controller.value.isPlaying) {
@@ -106,7 +108,7 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
     final position = await controller.position;
     var nextPosition = position + backwardAndForwardStep;
 
-    if (nextPosition >= controller.value.duration) {
+    if (nextPosition > controller.value.duration) {
       nextPosition = controller.value.duration;
     }
 
@@ -138,6 +140,10 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.addListener(() {
+        if (!mounted) {
+          return;
+        }
+
         if (controller.value.isReady &&
             controller.value.isPlaying &&
             !_initialWatcherAddedAfterAds) {
@@ -166,81 +172,94 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
 
   @override
   Widget build(BuildContext context) {
+    final canRenderUi = controller.value.isReady &&
+        !controller.value.isBuffering &&
+        !controller.value.isPlayingAd &&
+        !controller._isDisposedController;
+
     return AspectRatio(
       aspectRatio: aspectRatio,
       child: Stack(
         children: [
           widget.player,
-          if (!controller.value.isPlayingAd)
+          if (controller.value.isBuffering)
+            const Center(child: CircularProgressIndicator.adaptive()),
+          if (canRenderUi)
             Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: toggleUi,
-                child: IgnorePointer(
-                  ignoring: uiHidden,
-                  child: AnimatedOpacity(
-                    opacity: uiHidden ? 0.0 : 1,
-                    duration: const Duration(milliseconds: 250),
-                    child: Stack(
-                      children: [
-                        const Positioned.fill(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onDoubleTap: backwardVideo,
+                      onTap: toggleUi,
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onDoubleTap: forwardVideo,
+                      onTap: toggleUi,
+                    ),
+                  )
+                ],
+              ),
+            ),
+          if (canRenderUi)
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: uiHidden,
+                child: AnimatedOpacity(
+                  opacity: uiHidden ? 0.0 : 1,
+                  duration: const Duration(milliseconds: 250),
+                  child: Stack(
+                    children: [
+                      const IgnorePointer(
+                        child: SizedBox.expand(
                           child: ColoredBox(color: Color(0x66000000)),
                         ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onDoubleTap: backwardVideo,
-                              ),
-                            ),
-                            Expanded(
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onDoubleTap: forwardVideo,
-                              ),
-                            )
-                          ],
+                      ),
+                      Center(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: togglePlay,
+                          child: Icon(
+                            controller.value.isEnded
+                                ? Icons.replay_circle_filled
+                                : controller.value.isPlaying
+                                    ? Icons.pause_circle
+                                    : Icons.play_circle,
+                            size: 60,
+                            color: Colors.white,
+                          ),
                         ),
-                        Center(
+                      ),
+                      if (controller.value.isReady && !controller.value.isEnded)
+                        Positioned(
+                          top: 8,
+                          right: 8,
                           child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: togglePlay,
+                            onTap: muteToggle,
                             child: Icon(
-                              controller.value.isEnded
-                                  ? Icons.replay_circle_filled
-                                  : controller.value.isPlaying
-                                      ? Icons.pause_circle
-                                      : Icons.play_circle,
-                              size: 60,
+                              controller.value.volume == 0.0
+                                  ? Icons.volume_off
+                                  : Icons.volume_up,
                               color: Colors.white,
+                              size: 28,
                             ),
                           ),
                         ),
-                        if (controller.value.isReady)
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: GestureDetector(
-                              onTap: muteToggle,
-                              child: Icon(
-                                controller.value.volume == 0.0
-                                    ? Icons.volume_off
-                                    : Icons.volume_up,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
+                      if (controller.value.isReady && !controller.value.isEnded)
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          left: 8,
+                          child: ImaProgressBar(
+                            controller,
+                            onSeek: seekToHandler,
                           ),
-                        if (controller.value.isReady)
-                          Positioned(
-                            bottom: 8,
-                            right: 8,
-                            left: 8,
-                            child: ImaProgressBar(controller),
-                          )
-                      ],
-                    ),
+                        )
+                    ],
                   ),
                 ),
               ),
@@ -252,8 +271,10 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
 }
 
 class ImaProgressBar extends StatefulWidget {
-  const ImaProgressBar(this.controller, {super.key});
+  const ImaProgressBar(this.controller, {required this.onSeek, super.key});
+
   final ImaPlayerController controller;
+  final void Function(double position) onSeek;
 
   @override
   State<ImaProgressBar> createState() => _ImaProgressBarState();
@@ -261,6 +282,7 @@ class ImaProgressBar extends StatefulWidget {
 
 class _ImaProgressBarState extends State<ImaProgressBar> {
   var position = Duration.zero;
+  var seekValue = ValueNotifier<double?>(null);
 
   @override
   void initState() {
@@ -273,12 +295,14 @@ class _ImaProgressBarState extends State<ImaProgressBar> {
           return;
         }
 
-        if (!widget.controller.value.isReady) {
+        if (!widget.controller.value.isReady ||
+            !widget.controller.value.isPlaying ||
+            widget.controller._isDisposedController ||
+            widget.controller._isDisposedView) {
           return;
         }
 
         position = await widget.controller.position;
-
         setState(() {});
       });
     });
@@ -288,74 +312,54 @@ class _ImaProgressBarState extends State<ImaProgressBar> {
     return duration.toString().split('.').first.padLeft(8, "0").substring(3);
   }
 
-  final textStyle = const TextStyle(
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
-  );
+  TextStyle? get textStyle => Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: Colors.white,
+      );
 
   @override
   Widget build(BuildContext context) {
-    var color = Colors.white;
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.all(Radius.circular(4)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: ColoredBox(
-          color: const Color(0x88000000),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            child: Row(
-              children: [
-                Text(
-                  formatDuration(widget.controller.value.duration),
-                  style: textStyle,
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: LayoutBuilder(builder: (context, rect) {
-                      final positionPercent = position.inMilliseconds /
-                          widget.controller.value.duration.inMilliseconds;
-
-                      final bufferPercent = widget.controller.value
-                              .bufferedDuration.inMilliseconds /
-                          widget.controller.value.duration.inMilliseconds;
-
-                      return Stack(
-                        fit: StackFit.loose,
-                        children: [
-                          SizedBox(
-                            width: rect.maxWidth,
-                            height: 5.0,
-                            child: ColoredBox(color: color.withOpacity(0.1)),
-                          ),
-                          AnimatedPositioned(
-                            duration: const Duration(milliseconds: 200),
-                            width: bufferPercent * rect.maxWidth,
-                            height: 5.0,
-                            child: ColoredBox(color: color.withOpacity(0.3)),
-                          ),
-                          AnimatedPositioned(
-                            duration: const Duration(milliseconds: 200),
-                            width: positionPercent * rect.maxWidth,
-                            height: 5.0,
-                            child: ColoredBox(color: color),
-                          ),
-                        ],
-                      );
-                    }),
-                  ),
-                ),
-                Text(
-                  formatDuration(position),
-                  style: textStyle,
-                ),
-              ],
+    return ColoredBox(
+      color: const Color(0xAA000000),
+      child: Row(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              formatDuration(widget.controller.value.duration),
+              style: textStyle,
             ),
           ),
-        ),
+          Expanded(
+            child: LayoutBuilder(builder: (context, rect) {
+              final positionPercent = position.inMilliseconds /
+                  widget.controller.value.duration.inMilliseconds;
+
+              if (positionPercent.isNaN || positionPercent.isInfinite) {
+                return const SizedBox.shrink();
+              }
+
+              return Listener(
+                onPointerUp: (event) {
+                  widget.onSeek(event.localPosition.dx / rect.maxWidth);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: LinearProgressIndicator(
+                    value: positionPercent,
+                  ),
+                ),
+              );
+            }),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              formatDuration(position),
+              style: textStyle,
+            ),
+          )
+        ],
       ),
     );
   }

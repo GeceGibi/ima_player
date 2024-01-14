@@ -23,7 +23,6 @@ Used ExoPlayer for Android and AVPlayer for iOS.
 | ------------------------------- |-------------------------------------------------  | -------- | ------- |
 | controller                      | `ImaPlayerController`                             | YES      | -       |
 | gestureRecognizer               | `Set<Factory<OneSequenceGestureRecognizer>>`      | NO       | -       |
-| autoDisposeController           | bool                                              | NO       | false   |
 
 
 ## ImaPlayerController - Constructor Arguments

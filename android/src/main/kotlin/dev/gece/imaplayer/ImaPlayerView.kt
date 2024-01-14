@@ -48,12 +48,13 @@ internal class ImaPlayerView(
     private var messenger: BinaryMessenger,
     private val imaSdkSettings: ImaSdkSettings,
     private val imaPlayerSettings: ImaPlayerSettings,
-    private val headers: HashMap<String, String>
+    private val headers: HashMap<String, String>,
+    private val methodChannel: MethodChannel,
+    private val eventChannel: EventChannel,
 ) : PlatformView, AdEventListener, AdErrorListener {
     private val tag = "IMA_PLAYER/$id"
 
-    private var methodChannel: MethodChannel? = null
-    private var eventChannel: EventChannel? = null
+    private val eventQueue = ArrayList<HashMap<String, Any>>();
     private var eventSink: EventSink? = null
 
     // Video Player
@@ -80,7 +81,6 @@ internal class ImaPlayerView(
     init {
         setChannels()
         setAudioAttributes()
-
         buildHttpDataSourceFactory(headers)
 
         playerView.player = exoPlayer;
@@ -205,7 +205,7 @@ internal class ImaPlayerView(
                 )
             }
 
-            mainHandler.postDelayed(this, 250)
+            mainHandler.postDelayed(this, 500)
         }
     }
 
@@ -244,8 +244,7 @@ internal class ImaPlayerView(
     }
 
     private fun setChannels() {
-        methodChannel = MethodChannel(messenger, "gece.dev/imaplayer/$id")
-        methodChannel?.setMethodCallHandler { call, result ->
+        methodChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "play" -> play(call.arguments as String?, result)
                 "pause" -> pause(result)
@@ -260,22 +259,23 @@ internal class ImaPlayerView(
             }
         }
 
-        eventChannel = EventChannel(messenger, "gece.dev/imaplayer/$id/events")
-        eventChannel?.setStreamHandler(object : EventChannel.StreamHandler {
+        eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(o: Any?, sink: EventSink) {
                 eventSink = sink
+                while (eventQueue.isNotEmpty()) {
+                    sink.success(eventQueue.removeFirst())
+                }
             }
-
             override fun onCancel(o: Any?) {
                 eventSink = null
             }
         })
     }
 
-    private fun play(videoUrl: String?, result: MethodChannel.Result) {
-        if (videoUrl != null) {
+    private fun play(uri: String?, result: MethodChannel.Result) {
+        if (uri != null) {
             exoPlayer.clearMediaItems()
-            exoPlayer.addMediaItem(generateMediaItem(Uri.parse(videoUrl)))
+            exoPlayer.addMediaItem(generateMediaItem(Uri.parse(uri)))
         }
 
         exoPlayer.playWhenReady = true
@@ -322,7 +322,11 @@ internal class ImaPlayerView(
     }
 
     private fun sendEvent(value: HashMap<String, Any>) {
-        eventSink?.success(value)
+        if (eventSink == null) {
+            eventQueue.add(value)
+        } else {
+            eventSink?.success(value)
+        }
     }
 
     private fun sendContentDuration(duration: Long) {
@@ -386,8 +390,6 @@ internal class ImaPlayerView(
     }
 
     override fun dispose() {
-        mainHandler.removeCallbacks(bufferTracker)
-
         exoPlayer.release()
 
         playerView.removeAllViews()
@@ -396,9 +398,11 @@ internal class ImaPlayerView(
         adsLoader.setPlayer(null)
         adsLoader.release()
 
-        methodChannel = null
-        eventChannel = null
         eventSink = null
+        methodChannel.setMethodCallHandler(null);
+        eventChannel.setStreamHandler(null);
+
+        mainHandler.removeCallbacks(bufferTracker)
     }
 }
 

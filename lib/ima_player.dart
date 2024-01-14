@@ -2,12 +2,10 @@ library ima_player;
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 export './ima_player_models.dart'
@@ -54,11 +52,17 @@ class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
   var itWasPlaying = false;
   var viewId = -1;
 
+  void onViewCreatedHandler(int viewId) {
+    this.viewId = viewId;
+    widget.controller._initialize(viewId);
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    if (widget.controller._isDisposed) {
+    if (widget.controller._isDisposedController ||
+        widget.controller._isDisposedView) {
       return;
     }
 
@@ -84,11 +88,13 @@ class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(covariant ImaPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     if (widget.controller != oldWidget.controller) {
-      widget.controller._attach(viewId);
+      if (viewId == -1) {
+        return;
+      }
+
       widget.controller.value = oldWidget.controller.value;
-      oldWidget.controller._disposeListeners();
+      widget.controller._initialize(viewId);
     }
   }
 
@@ -101,16 +107,14 @@ class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.controller._isDisposed) {
-      throw "This controller is disposed.";
+    if (widget.controller._isDisposedController) {
+      throw "${widget.controller.runtimeType} is disposed.";
     }
 
     return _ImaPlayerView(
-      widget.controller,
+      widget.controller.toCreationParams(),
       gestureRecognizers: widget.gestureRecognizers,
-      onViewCreated: (viewId) {
-        this.viewId = viewId;
-      },
+      onViewCreated: onViewCreatedHandler,
     );
   }
 }

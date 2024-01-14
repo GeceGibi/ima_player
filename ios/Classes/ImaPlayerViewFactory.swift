@@ -10,6 +10,7 @@ import Foundation
 import Flutter
 import UIKit
 
+
 class ImaPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
     private var registrar: FlutterPluginRegistrar
 
@@ -23,6 +24,8 @@ class ImaPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
     }
 
     func create(withFrame frame: CGRect,  viewIdentifier viewId: Int64, arguments args: Any? ) -> FlutterPlatformView {
+        var methodChannel = FlutterMethodChannel(name: "gece.dev/imaplayer/\(viewId)", binaryMessenger: registrar.messenger())
+        var eventChannel = FlutterEventChannel(name: "gece.dev/imaplayer/\(viewId)/events", binaryMessenger: registrar.messenger())
         
         let payload = args as! Dictionary<String, Any>
         
@@ -66,7 +69,9 @@ class ImaPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
             binaryMessenger: registrar.messenger(),
             imaSdkSettings: imaSdkSettings,
             imaPlayerSettings: imaPlayerSettings,
-            headers: headers
+            headers: headers,
+            methodChannel: methodChannel,
+            eventChannel: eventChannel
         )
     }
 }
