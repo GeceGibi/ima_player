@@ -97,7 +97,7 @@ Used ExoPlayer for Android and AVPlayer for iOS.
     );
 
     AspectRatio(
-        aspectRatio: 16 / 9,
+        aspectRatio: 16/9,
         child: ImaPlayer(controller)
     )
 ```

@@ -1,3 +1,9 @@
+## 2.0.4
+* Fixed iOS, Android lifecycle bug.
+* Updated ImaPlayerController lifecycle.
+* removed `autoDisposeController`, (Player doing this if it's necessary);
+
+
 ## 2.0.3
 * Fixed:iOS controller and platform view dispose bug
 
