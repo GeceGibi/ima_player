@@ -213,11 +213,21 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
   }
 
   void _disposeView() {
-    if (_isDisposedView || _isDisposedController) return;
-
     _isDisposedView = true;
     _eventStream?.cancel();
+    _eventStream = null;
     _methodChannel?.invokeMethod('dispose');
+
+    if (!_isDisposedController) {
+      value = PlayerEvent(volume: options.initialVolume);
+    }
+  }
+
+  void _disposeController() {
+    _eventStream?.cancel();
+    _eventStream = null;
+    _isDisposedController = true;
+    _kControllerInstances.remove(this);
   }
 
   Map<String, dynamic> toCreationParams() {
@@ -235,14 +245,8 @@ class ImaPlayerController extends ValueNotifier<PlayerEvent> {
 
   @override
   void dispose() {
-    if (_isDisposedController) {
-      return;
-    }
-
+    _disposeController();
     _disposeView();
-
-    _kControllerInstances.remove(this);
-    _isDisposedController = true;
     super.dispose();
   }
 }

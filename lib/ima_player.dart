@@ -88,6 +88,7 @@ class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(covariant ImaPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+
     if (widget.controller != oldWidget.controller) {
       if (viewId == -1) {
         return;
@@ -95,6 +96,7 @@ class _ImaPlayerState extends State<ImaPlayer> with WidgetsBindingObserver {
 
       widget.controller.value = oldWidget.controller.value;
       widget.controller._initialize(viewId);
+      oldWidget.controller._disposeController();
     }
   }
 
