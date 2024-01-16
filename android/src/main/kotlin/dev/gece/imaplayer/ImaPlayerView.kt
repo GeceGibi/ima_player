@@ -91,16 +91,22 @@ internal class ImaPlayerView(
             playerView.useController = imaPlayerSettings.showPlaybackControls
         }
 
-        adsLoader.setPlayer(exoPlayer);
+        if (imaPlayerSettings.isAdsEnabled) {
+            adsLoader.setPlayer(exoPlayer);
+        }
 
         val dataSourceFactory: DataSource.Factory =
             DefaultDataSource.Factory(context, httpDataSourceFactory)
 
         val mediaSourceWithAdFactory = DefaultMediaSourceFactory(context)
-            .setDataSourceFactory(dataSourceFactory)
-            .setLocalAdInsertionComponents({ _ -> adsLoader }, playerView)
+            .setDataSourceFactory(dataSourceFactory);
+
+        if (imaPlayerSettings.isAdsEnabled) {
+            mediaSourceWithAdFactory.setLocalAdInsertionComponents({ _ -> adsLoader }, playerView)
+        }
 
         exoPlayer.volume = imaPlayerSettings.initialVolume.toFloat()
+        exoPlayer.playWhenReady = imaPlayerSettings.autoPlay
 
         exoPlayer.addListener(object : Player.Listener {
             private var isBuffering = false
@@ -185,7 +191,7 @@ internal class ImaPlayerView(
         val mediaItem = generateMediaItem(imaPlayerSettings.uri)
         exoPlayer.addMediaSource(mediaSourceWithAdFactory.createMediaSource(mediaItem))
         exoPlayer.prepare();
-        exoPlayer.playWhenReady = imaPlayerSettings.autoPlay;
+
     }
 
     var bufferTracker = object : Runnable {
@@ -266,6 +272,7 @@ internal class ImaPlayerView(
                     sink.success(eventQueue.removeFirst())
                 }
             }
+
             override fun onCancel(o: Any?) {
                 eventSink = null
             }
@@ -313,7 +320,7 @@ internal class ImaPlayerView(
             exoPlayer.volume = value.toFloat()
         }
 
-        result.success(value != null)
+        result.success(null)
     }
 
     private fun skipAd(result: MethodChannel.Result) {

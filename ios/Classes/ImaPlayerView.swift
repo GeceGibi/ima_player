@@ -72,7 +72,6 @@ class ImaPlayerView: NSObject, FlutterPlatformView, IMAAdsManagerDelegate, IMAAd
         methodChannel.setMethodCallHandler(onMethodCall)
         
         setMixWithOther()
-        
         addListenerForItem()
         addListenerForPlayer()
         
@@ -170,6 +169,11 @@ class ImaPlayerView: NSObject, FlutterPlatformView, IMAAdsManagerDelegate, IMAAd
         case "status":
             if avPlayer.status == .readyToPlay {
                 sendEvent(event: ["type": "ready"])
+                
+                if !imaPlayerSettings.isAdsEnabled && imaPlayerSettings.autoPlay && avPlayer.rate == 0 {
+                    avPlayer.play()
+                }
+                
             } else if avPlayer.status == .failed {
                 // sendEvent(value: ["player_error": avPlayer.error])
             }
@@ -231,11 +235,9 @@ class ImaPlayerView: NSObject, FlutterPlatformView, IMAAdsManagerDelegate, IMAAd
     
     public func onListen(withArguments arguments: Any?, eventSink: @escaping FlutterEventSink) -> FlutterError? {
         self.eventSink = eventSink
-        
         while !eventQueue.isEmpty {
             eventSink(eventQueue.removeFirst())
         }
-        
         return nil
     }
     
