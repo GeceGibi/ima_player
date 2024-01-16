@@ -1,3 +1,16 @@
+## 2.0.5
+* Fixed:iOS autoPlay when ads not loaded or `imaTag` not defined.
+* Added some ui personalization props to `ImaPlayerUI` 
+
+```dart 
+    bool muteEnabled = true;
+    bool fastForwardEnabled = true;
+    bool fastBackwardEnabled = true;
+    Widget Function()? bufferingIndicatorBuilder;
+    Duration uiFadeOutDuration = const Duration(milliseconds: 350);
+    Duration uiAutoHideAfterDuration = const Duration(seconds: 3);
+```
+
 ## 2.0.4
 * Fixed iOS, Android lifecycle bug.
 * Updated ImaPlayerController lifecycle.

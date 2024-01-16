@@ -1,8 +1,24 @@
 part of 'ima_player.dart';
 
 class ImaPlayerUI extends StatefulWidget {
-  const ImaPlayerUI({super.key, required this.player});
+  const ImaPlayerUI({
+    super.key,
+    required this.player,
+    this.bufferingIndicatorBuilder,
+    this.muteEnabled = true,
+    this.fastBackwardEnabled = true,
+    this.fastForwardEnabled = true,
+    this.uiFadeOutDuration = const Duration(milliseconds: 350),
+    this.uiAutoHideAfterDuration = const Duration(seconds: 3),
+  });
+
   final ImaPlayer player;
+  final bool muteEnabled;
+  final bool fastForwardEnabled;
+  final bool fastBackwardEnabled;
+  final Widget Function()? bufferingIndicatorBuilder;
+  final Duration uiFadeOutDuration;
+  final Duration uiAutoHideAfterDuration;
 
   @override
   State<ImaPlayerUI> createState() => _ImaPlayerUIState();
@@ -17,7 +33,7 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
   Timer? uiTimer;
   void watchUi() {
     uiTimer?.cancel();
-    uiTimer = Timer(const Duration(seconds: 3), hideUi);
+    uiTimer = Timer(widget.uiAutoHideAfterDuration, hideUi);
   }
 
   void hideUi() {
@@ -183,7 +199,10 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
         children: [
           widget.player,
           if (controller.value.isBuffering)
-            const Center(child: CircularProgressIndicator.adaptive()),
+            if (widget.bufferingIndicatorBuilder != null)
+              widget.bufferingIndicatorBuilder!()
+            else
+              const Center(child: CircularProgressIndicator.adaptive()),
           if (canRenderUi)
             Positioned.fill(
               child: Row(
@@ -191,14 +210,16 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
                   Expanded(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onDoubleTap: backwardVideo,
+                      onDoubleTap:
+                          widget.fastBackwardEnabled ? backwardVideo : null,
                       onTap: toggleUi,
                     ),
                   ),
                   Expanded(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onDoubleTap: forwardVideo,
+                      onDoubleTap:
+                          widget.fastBackwardEnabled ? forwardVideo : null,
                       onTap: toggleUi,
                     ),
                   )
@@ -211,7 +232,7 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
                 ignoring: uiHidden,
                 child: AnimatedOpacity(
                   opacity: uiHidden ? 0.0 : 1,
-                  duration: const Duration(milliseconds: 250),
+                  duration: widget.uiFadeOutDuration,
                   child: Stack(
                     children: [
                       const IgnorePointer(
@@ -234,7 +255,9 @@ class _ImaPlayerUIState extends State<ImaPlayerUI> {
                           ),
                         ),
                       ),
-                      if (controller.value.isReady && !controller.value.isEnded)
+                      if (controller.value.isReady &&
+                          !controller.value.isEnded &&
+                          widget.muteEnabled)
                         Positioned(
                           top: 8,
                           right: 8,
