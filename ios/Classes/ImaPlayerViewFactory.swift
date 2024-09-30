@@ -20,7 +20,7 @@ class ImaPlayerViewFactory: NSObject, FlutterPlatformViewFactory {
     }
     
     func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-          return FlutterStandardMessageCodec.sharedInstance()
+        return FlutterStandardMessageCodec.sharedInstance()
     }
 
     func create(withFrame frame: CGRect,  viewIdentifier viewId: Int64, arguments args: Any? ) -> FlutterPlatformView {

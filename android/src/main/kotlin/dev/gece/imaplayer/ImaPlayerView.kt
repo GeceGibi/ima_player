@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.View
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
@@ -32,20 +31,16 @@ import com.google.ads.interactivemedia.v3.api.AdEvent
 import com.google.ads.interactivemedia.v3.api.AdEvent.AdEventListener
 import com.google.ads.interactivemedia.v3.api.AdsManager
 import com.google.ads.interactivemedia.v3.api.ImaSdkSettings
-import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
-import java.util.Timer
-import java.util.TimerTask
 
 
 @RequiresApi(Build.VERSION_CODES.N)
 internal class ImaPlayerView(
     private var context: Context,
     private var id: Int,
-    private var messenger: BinaryMessenger,
     private val imaSdkSettings: ImaSdkSettings,
     private val imaPlayerSettings: ImaPlayerSettings,
     private val headers: HashMap<String, String>,
@@ -329,10 +324,12 @@ internal class ImaPlayerView(
     }
 
     private fun sendEvent(value: HashMap<String, Any>) {
-        if (eventSink == null) {
-            eventQueue.add(value)
-        } else {
-            eventSink?.success(value)
+        mainHandler.post {
+            if (eventSink == null) {
+                eventQueue.add(value)
+            } else {
+                eventSink?.success(value)
+            }
         }
     }
 
@@ -389,11 +386,7 @@ internal class ImaPlayerView(
     }
 
     override fun onAdError(event: AdErrorEvent) {
-        eventSink?.error(
-            "ad_error",
-            "${event.error.errorCode.name}, ${event.error.message}",
-            null
-        )
+        // todo: improve error servings
     }
 
     override fun dispose() {

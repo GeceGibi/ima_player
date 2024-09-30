@@ -20,9 +20,9 @@ class ImaPlayerViewFactory(private val messenger: BinaryMessenger) :
 
     @RequiresApi(Build.VERSION_CODES.N)
     override fun create(context: Context, id: Int, args: Any?): PlatformView {
+        val methodChannel = MethodChannel(messenger, "gece.dev/imaplayer/$id")
+        val eventChannel = EventChannel(messenger, "gece.dev/imaplayer/$id/events")
 
-        var methodChannel = MethodChannel(messenger, "gece.dev/imaplayer/$id")
-        var eventChannel = EventChannel(messenger, "gece.dev/imaplayer/$id/events")
         val payload = args as Map<String, Any>;
 
         val adsLoaderSettings = payload["ads_loader_settings"] as HashMap<*, *>
@@ -56,7 +56,6 @@ class ImaPlayerViewFactory(private val messenger: BinaryMessenger) :
         return ImaPlayerView(
             context,
             id,
-            messenger,
             imaSdkSettings,
             imaPlayerSettings,
             headers,
